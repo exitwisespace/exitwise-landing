@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExitWise — Exit Strategy Agent</title>
 <meta name="description" content="Heuristic-based exit strategy agent. Check the risk score before you panic sell.">
+<meta property="og:title" content="ExitWise — Crypto Token Risk Scanner">
+<meta property="og:description" content="Real-time risk scoring for crypto tokens. 14 signals, 0-22 risk score. Paste a CA, get a verdict.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://exitwise-landing-seven.vercel.app">
+<meta property="og:image" content="https://exitwise-landing-seven.vercel.app/og-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://exitwise-landing-seven.vercel.app/og-banner.png">
+<meta name="twitter:title" content="ExitWise — Crypto Token Risk Scanner">
+<meta name="twitter:description" content="Real-time risk scoring for crypto tokens. 14 signals, 0-22 risk score.">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -231,8 +240,9 @@ footer .links a:hover{color:var(--green)}
       <a href="#signals">Signals</a>
       <a href="#scanner">Scanner</a>
       <a href="#install">Install</a>
+      <a href="/investigate" style="color:var(--amber)">Investigate</a>
     </div>
-    <button class="btn">LAUNCH APP</button>
+    <a href="/investigate" class="btn" style="text-decoration:none">LAUNCH APP</a>
   </div>
 </nav>
 
@@ -244,21 +254,21 @@ footer .links a:hover{color:var(--green)}
     <span>RULE-BASED HEURISTICS</span><span class="sep">◇</span>
     <span>NO ML · NO AI</span><span class="sep">◇</span>
     <span>DEXSCREENER + BLOCKSCOUT</span><span class="sep">◇</span>
-    <span>PORTFOLIO SCANNER</span><span class="sep">◇</span>
-    <span>HISTORICAL TRACKING</span><span class="sep">◇</span>
-    <span>TELEGRAM BOT</span><span class="sep">◇</span>
-    <span>WEB DASHBOARD</span><span class="sep">◇</span>
-    <span>BACKTESTING ENGINE</span><span class="sep">◇</span>
+    <span>OSINT INVESTIGATION</span><span class="sep">◇</span>
+    <span>DEPLOYER FORENSICS</span><span class="sep">◇</span>
+    <span>HOLDER ANALYSIS</span><span class="sep">◇</span>
+    <span>CONTRACT AUDIT</span><span class="sep">◇</span>
+    <span>AI ANALYSIS</span><span class="sep">◇</span>
     <span>EXITWISE v2.0</span><span class="sep">◇</span>
     <span>14 SCORING SIGNALS</span><span class="sep">◇</span>
     <span>RULE-BASED HEURISTICS</span><span class="sep">◇</span>
     <span>NO ML · NO AI</span><span class="sep">◇</span>
     <span>DEXSCREENER + BLOCKSCOUT</span><span class="sep">◇</span>
-    <span>PORTFOLIO SCANNER</span><span class="sep">◇</span>
-    <span>HISTORICAL TRACKING</span><span class="sep">◇</span>
-    <span>TELEGRAM BOT</span><span class="sep">◇</span>
-    <span>WEB DASHBOARD</span><span class="sep">◇</span>
-    <span>BACKTESTING ENGINE</span><span class="sep">◇</span>
+    <span>OSINT INVESTIGATION</span><span class="sep">◇</span>
+    <span>DEPLOYER FORENSICS</span><span class="sep">◇</span>
+    <span>HOLDER ANALYSIS</span><span class="sep">◇</span>
+    <span>CONTRACT AUDIT</span><span class="sep">◇</span>
+    <span>AI ANALYSIS</span><span class="sep">◇</span>
   </div>
 </div>
 
@@ -286,14 +296,14 @@ footer .links a:hover{color:var(--green)}
   <div class="container">
     <div class="section-label">ABOUT EXITWISE</div>
     <h2 class="section-title">Not a chatbot. Not an assistant. A shield.</h2>
-    <p class="section-desc">ExitWise analyzes token metrics and produces a risk score (0–15) to help you decide: hold, take profit, or cut losses. Rule-based heuristics — not vibes.</p>
+    <p class="section-desc">ExitWise analyzes token metrics and produces a risk score (0–22) to help you decide: hold, take profit, or cut losses. Rule-based heuristics — not vibes.</p>
     <div class="features">
-      <div class="feature fade-in"><div class="icon">🛡️</div><h3>Risk Score Engine</h3><p>12 rule-based signals produce a 0–15 risk score. Higher = riskier. No ML, no AI — pure heuristics.</p></div>
-      <div class="feature fade-in"><div class="icon">📊</div><h3>Portfolio Scanner</h3><p>Track and scan multiple tokens at once. Add, remove, and batch scan your holdings.</p></div>
-      <div class="feature fade-in"><div class="icon">📈</div><h3>Historical Tracking</h3><p>SQLite-based score history with trend analysis. See how risk changes over time.</p></div>
-      <div class="feature fade-in"><div class="icon">🤖</div><h3>Telegram Bot</h3><p>Scan tokens and get alerts via Telegram. Commands: /scan, /trending, /portfolio.</p></div>
-      <div class="feature fade-in"><div class="icon">🖥️</div><h3>Web Dashboard</h3><p>Flask-based dark-theme UI for scanning and monitoring tokens in real-time.</p></div>
-      <div class="feature fade-in"><div class="icon">🔬</div><h3>Backtesting Engine</h3><p>Validate scoring accuracy against historical data. Prove your edge.</p></div>
+      <div class="feature fade-in"><div class="icon">🛡️</div><h3>Risk Score Engine</h3><p>14 rule-based signals produce a 0–22 risk score. Higher = riskier. No ML, no AI — pure heuristics.</p></div>
+      <div class="feature fade-in"><div class="icon">🔍</div><h3>OSINT Investigation</h3><p>Deep on-chain forensics: contract audit, deployer analysis, holder distribution, and more.</p></div>
+      <div class="feature fade-in"><div class="icon">📊</div><h3>Deployer Forensics</h3><p>Analyze deployer wallet history, past deployments, and rug patterns across chains.</p></div>
+      <div class="feature fade-in"><div class="icon">👥</div><h3>Holder Analysis</h3><p>Map holder distribution, detect concentration risk, and identify bot wallets.</p></div>
+      <div class="feature fade-in"><div class="icon">📋</div><h3>Contract Audit</h3><p>Verify source code, check ownership, detect proxy patterns and hidden functions.</p></div>
+      <div class="feature fade-in"><div class="icon">🤖</div><h3>AI Analysis</h3><p>LLM-powered plain English verdicts. Get a human-readable safety assessment.</p></div>
     </div>
   </div>
 </section>
@@ -399,34 +409,49 @@ footer .links a:hover{color:var(--green)}
   </div>
 </section>
 
+<!-- INVESTIGATE PROMO -->
+<section id="investigate-promo" style="padding:80px 0;background:linear-gradient(180deg,rgba(255,170,0,.03) 0%,transparent 100%)">
+  <div class="container" style="text-align:center">
+    <div class="section-label" style="color:var(--amber)">DEEP INVESTIGATION</div>
+    <h2 class="section-title">Go beyond the score.</h2>
+    <p class="section-desc" style="margin:0 auto 32px;text-align:center">Full OSINT investigation: contract audit, deployer forensics, holder clustering, risk patterns. Then AI-powered plain English verdict.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;max-width:800px;margin:0 auto 40px;text-align:left">
+      <div style="border:1px solid var(--border);background:var(--card);padding:16px"><div style="color:var(--amber);font-size:11px;margin-bottom:4px">CONTRACT AUDIT</div><div style="color:var(--muted);font-size:12px">Honeypot, proxy, verified source, hidden mint</div></div>
+      <div style="border:1px solid var(--border);background:var(--card);padding:16px"><div style="color:var(--amber);font-size:11px;margin-bottom:4px">DEPLOYER FORENSICS</div><div style="color:var(--muted);font-size:12px">Past rugs, token factory, wallet age, funding source</div></div>
+      <div style="border:1px solid var(--border);background:var(--card);padding:16px"><div style="color:var(--amber);font-size:11px;margin-bottom:4px">HOLDER ANALYSIS</div><div style="color:var(--muted);font-size:12px">Clustering, insider wallets, concentration risk</div></div>
+      <div style="border:1px solid var(--border);background:var(--card);padding:16px"><div style="color:var(--amber);font-size:11px;margin-bottom:4px">AI VERDICT</div><div style="color:var(--muted);font-size:12px">Plain English safety assessment by LLM agent</div></div>
+    </div>
+    <a href="/investigate" class="btn-primary" style="background:var(--amber);color:#000;font-size:15px;padding:14px 32px;text-decoration:none">LAUNCH DEEP INVESTIGATE →</a>
+  </div>
+</section>
+
 <!-- INSTALL -->
 <section id="install">
   <div class="container">
     <div class="section-label">INSTALL</div>
     <h2 class="section-title">Get started in 30 seconds.</h2>
-    <p class="section-desc">Core scoring has zero dependencies. Just Python 3.9+ and GMGN CLI.</p>
+    <p class="section-desc">Self-host your own instance. Clone, deploy, done.</p>
     <div class="install-block">
-      <div class="comment"># Clone</div>
-      <div class="cmd">$ git clone https://github.com/exitwise/exitwise-utility.git</div>
-      <div class="cmd">$ cd exitwise-utility</div>
-      <div class="comment" style="margin-top:16px"># Core (no dependencies)</div>
-      <div class="cmd">$ python shieldscore.py --help</div>
-      <div class="comment" style="margin-top:16px"># Optional: web dashboard & telegram bot</div>
-      <div class="cmd">$ pip install -r requirements.txt</div>
+      <div class="comment"># Clone the repo</div>
+      <div class="cmd">$ git clone https://github.com/exitwisespace/exitwise-landing.git</div>
+      <div class="cmd">$ cd exitwise-landing</div>
+      <div class="comment" style="margin-top:16px"># Install & run locally</div>
+      <div class="cmd">$ npm i -g vercel</div>
+      <div class="cmd">$ vercel dev</div>
+      <div class="comment" style="margin-top:16px"># Or deploy your own instance</div>
+      <div class="cmd">$ vercel deploy --prod</div>
     </div>
     <div class="quickstart">
-      <h3>Quick Start</h3>
-      <div class="qs-item"><code>$ python shieldscore.py --address &lt;CA&gt; --chain base</code><span>Scan a single token</span></div>
-      <div class="qs-item"><code>$ python shieldscore.py --address &lt;CA&gt; --chain base --holders</code><span>Scan with holder analysis</span></div>
-      <div class="qs-item"><code>$ python shieldscore.py --trending --chain base --limit 10</code><span>Scan trending tokens</span></div>
-      <div class="qs-item"><code>$ python shieldscore.py --portfolio scan</code><span>Scan entire portfolio</span></div>
-      <div class="qs-item"><code>$ python shieldscore.py --history --address &lt;CA&gt; --chain base</code><span>View score trend</span></div>
+      <h3>API Usage</h3>
+      <div class="qs-item"><code>GET /api/scan?address=0x...&chain=base</code><span>Quick risk scan — returns score, signals, metrics</span></div>
+      <div class="qs-item"><code>GET /api/investigate?address=0x...&chain=base</code><span>Full OSINT — contract audit, deployer forensics, holder analysis</span></div>
+      <div class="qs-item"><code>POST /api/ai  { data: investigate_result }</code><span>AI-powered analysis — plain English verdict</span></div>
     </div>
     <div class="channels">
-      <div class="channel"><div class="icon">⌨️</div><h3>CLI</h3><p>Run directly from terminal. Zero dependencies for core scoring.</p></div>
-      <div class="channel"><div class="icon">📱</div><h3>Telegram Bot</h3><p>/scan, /trending, /portfolio commands. Get alerts on your phone.</p></div>
-      <div class="channel"><div class="icon">🖥️</div><h3>Web Dashboard</h3><p>Flask dark-theme UI. Visual scanning and monitoring.</p></div>
-      <div class="channel"><div class="icon">🐍</div><h3>Python API</h3><p>Import shieldscore in your own scripts. Full programmatic access.</p></div>
+      <div class="channel"><div class="icon">🌐</div><h3>Web App</h3><p>Full scanner + investigation UI. No install needed.</p></div>
+      <div class="channel"><div class="icon">📡</div><h3>REST API</h3><p>JSON endpoints for scanning and investigation. Build on top.</p></div>
+      <div class="channel"><div class="icon">🤖</div><h3>AI Agent</h3><p>LLM-powered analysis. Get plain English safety verdicts.</p></div>
+      <div class="channel"><div class="icon">🔗</div><h3>Open Source</h3><p>MIT licensed. Self-host, fork, or contribute.</p></div>
     </div>
   </div>
 </section>
@@ -436,7 +461,7 @@ footer .links a:hover{color:var(--green)}
   <div class="container">
     <div class="section-label" style="text-align:center">RECENT SCANS</div>
     <h2 class="section-title" style="text-align:center">Try these popular Base tokens.</h2>
-    <p class="section-desc" style="text-align:center;margin:0 auto 48px">Click any token to see its risk score instantly.</p>
+    <p class="section-desc" style="text-align:center;margin:0 auto 48px">Click any token to see its risk score instantly. <span style="color:var(--muted);font-size:11px">(Example tokens)</span></p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;max-width:900px;margin:0 auto">
       <button onclick="quickScan('0x4200000000000000000000000000000000000006')" style="all:unset;cursor:pointer;border:1px solid var(--border);background:var(--card);padding:16px;text-align:left;transition:border-color .2s">
         <div style="font-weight:700;color:#fff">Wrapped ETH</div>
@@ -457,12 +482,12 @@ footer .links a:hover{color:var(--green)}
 <!-- FOOTER -->
 <footer>
   <div class="container inner">
-    <div class="copy">© 2025 ExitWise · Rule-based heuristics · Not financial advice</div>
+    <div class="copy">© 2026 ExitWise · Rule-based heuristics · Not financial advice</div>
     <div class="links">
       <a href="#">Twitter</a>
       <a href="#">Telegram</a>
       <a href="#">Docs</a>
-      <a href="#">GitHub</a>
+      <a href="https://github.com/exitwisespace/exitwise-landing">GitHub</a>
     </div>
   </div>
 </footer>

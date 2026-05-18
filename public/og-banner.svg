@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <!-- Grid pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+    </pattern>
+    <!-- Subtle glow filter for the title -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Grid overlay -->
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Top accent line -->
+  <line x1="0" y1="0" x2="1200" y2="0" stroke="#00ff88" stroke-width="2" opacity="0.6"/>
+
+  <!-- Bottom accent line -->
+  <line x1="0" y1="628" x2="1200" y2="628" stroke="#00ff88" stroke-width="2" opacity="0.3"/>
+
+  <!-- Decorative corner brackets -->
+  <path d="M 60 100 L 60 70 L 90 70" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 1140 100 L 1140 70 L 1110 70" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 60 530 L 60 560 L 90 560" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 1140 530 L 1140 560 L 1110 560" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Scan line accents -->
+  <line x1="200" y1="220" x2="400" y2="220" stroke="#00ff88" stroke-width="1" opacity="0.15"/>
+  <line x1="800" y1="420" x2="1000" y2="420" stroke="#00ff88" stroke-width="1" opacity="0.15"/>
+
+  <!-- Terminal prompt indicator -->
+  <text x="340" y="280" font-family="'Courier New', 'Fira Code', 'SF Mono', monospace" font-size="18" fill="#00ff88" opacity="0.3">&gt;_</text>
+
+  <!-- Main title: EXITWISE -->
+  <text x="600" y="310" font-family="'Courier New', 'Fira Code', 'SF Mono', monospace" font-size="96" font-weight="bold" fill="#00ff88" text-anchor="middle" letter-spacing="12" filter="url(#glow)">EXITWISE</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="370" font-family="'Courier New', 'Fira Code', 'SF Mono', monospace" font-size="26" fill="#ffffff" text-anchor="middle" letter-spacing="4">Crypto Token Risk Scanner</text>
+
+  <!-- Divider line -->
+  <line x1="420" y1="395" x2="780" y2="395" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="420" y1="395" x2="550" y2="395" stroke="#00ff88" stroke-width="1" opacity="0.3"/>
+
+  <!-- Tagline -->
+  <text x="600" y="435" font-family="'Courier New', 'Fira Code', 'SF Mono', monospace" font-size="18" fill="#666666" text-anchor="middle" letter-spacing="3">14 Signals · 0-22 Risk Score · Real-time OSINT</text>
+
+  <!-- URL -->
+  <text x="600" y="520" font-family="'Courier New', 'Fira Code', 'SF Mono', monospace" font-size="14" fill="#333333" text-anchor="middle" letter-spacing="2">exitwise.io</text>
+</svg>
