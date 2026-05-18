@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
       ruggedCount: deployerData.ruggedCount || 0,
       otherTokensHeld: deployerData.otherTokensHeld || [],
       riskFlags: deployerData.riskFlags || [],
-    } : deployerAddr ? { address: deployerAddr, creationTx: contract?.creation_transaction_hash } : null;
+    } : deployerAddr ? { address: deployerAddr, creationTx: contract?.creation_transaction_hash, deployerBalance: null, tokensDeployed: 0, deployedTokens: [], ruggedTokens: [], ruggedCount: 0, otherTokensHeld: [], riskFlags: [], creationDate: null } : null;
 
     // Holder clustering
     const holders = rawHolders ? analyzeHolderCluster(rawHolders, dex) : null;
