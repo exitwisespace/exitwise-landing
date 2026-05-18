@@ -166,8 +166,8 @@ ${redFlags.length > 0 ? `- **RED FLAGS: ${redFlags.join(', ')}**` : '- No red fl
 - Balance: ${data.deployer.deployerBalance || 'unknown'}
 - Tokens/contracts deployed: ${data.deployer.tokensDeployed}
 - Rugged/scam tokens found: ${data.deployer.ruggedCount}
-${data.deployer.ruggedTokens.length > 0 ? `- Rugged tokens:\n${data.deployer.ruggedTokens.slice(0, 5).map(r => `    - ${r.name} (${r.symbol}) — rep: ${r.reputation}`).join('\n')}` : ''}
-${data.deployer.riskFlags.length > 0 ? `- Risk flags:\n${data.deployer.riskFlags.map(f => `    - ${f}`).join('\n')}` : ''}`);
+${(data.deployer.ruggedTokens || []).length > 0 ? `- Rugged tokens:\n${data.deployer.ruggedTokens.slice(0, 5).map(r => `    - ${r.name} (${r.symbol}) — rep: ${r.reputation}`).join('\n')}` : ''}
+${(data.deployer.riskFlags || []).length > 0 ? `- Risk flags:\n${data.deployer.riskFlags.map(f => `    - ${f}`).join('\n')}` : ''}`);
   } else {
     parts.push(`## Deployer Forensics
 - Data unavailable`);
@@ -181,8 +181,8 @@ ${data.deployer.riskFlags.length > 0 ? `- Risk flags:\n${data.deployer.riskFlags
 - Contract addresses: ${data.holders.contractHolders}
 - Scam-tagged holders: ${data.holders.scamTagged}
 - Concentration: Top 3 = ${data.holders.concentration.top3}, Top 10 = ${data.holders.concentration.top10}
-- Whale count (>1% supply): ${data.holders.whaleCount}
-${data.holders.riskFlags.length > 0 ? `- Risk flags:\n${data.holders.riskFlags.map(f => `    - ${f}`).join('\n')}` : ''}`);
+- Whale count (>1% supply): ${data.holders.whaleCount || 0}
+${(data.holders.riskFlags || []).length > 0 ? `- Risk flags:\n${data.holders.riskFlags.map(f => `    - ${f}`).join('\n')}` : ''}`);
   } else {
     parts.push(`## Holder Analysis
 - Data unavailable`);
