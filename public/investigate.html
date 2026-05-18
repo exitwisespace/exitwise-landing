@@ -400,7 +400,20 @@ function renderReport(data) {
     <div class="section-body"><div class="markdown">${renderMarkdown(report)}</div></div>
   </div>`;
 
+  // AI Analysis button
+  html += `<div class="section" id="aiSection">
+    <div class="section-header" style="cursor:pointer;background:rgba(0,212,255,.05)" onclick="runAIAnalysis()">
+      <span class="icon">🤖</span><h3>AI Analysis (Click to run)</h3>
+    </div>
+    <div class="section-body collapsed" id="aiBody">
+      <p style="color:var(--muted)">Loading AI analysis...</p>
+    </div>
+  </div>`;
+
   reportEl.innerHTML = html;
+  
+  // Store data for AI call
+  window.__investigationData = { token, scan, socials, deployer, audit, osint, holders };
 }
 
 function renderMarkdown(md) {
@@ -420,6 +433,32 @@ function renderMarkdown(md) {
 function toggleSection(header) {
   const body = header.nextElementSibling;
   body.classList.toggle('collapsed');
+}
+
+async function runAIAnalysis() {
+  const body = document.getElementById('aiBody');
+  body.classList.remove('collapsed');
+  body.innerHTML = '<p style="color:var(--amber)">🤖 Analyzing with AI...</p>';
+  
+  try {
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: window.__investigationData }),
+    });
+    const data = await res.json();
+    
+    if (data.success && data.analysis) {
+      body.innerHTML = `<div class="markdown">${renderMarkdown(data.analysis)}</div>`;
+      if (data.fallback) {
+        body.innerHTML += '<p style="margin-top:12px;font-size:11px;color:var(--muted)">⚠️ Fallback analysis — AI model unavailable</p>';
+      }
+    } else {
+      body.innerHTML = `<p class="flag">⚠️ ${data.error || 'AI analysis failed'}</p>`;
+    }
+  } catch (err) {
+    body.innerHTML = `<p class="flag">⚠️ Network error: ${err.message}</p>`;
+  }
 }
 </script>
 </body>

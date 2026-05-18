@@ -13,38 +13,17 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { address, chain } = req.method === 'POST' ? req.body : req.query;
-
-  if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
-    return res.status(400).json({ error: 'Invalid contract address' });
+  const body = req.method === 'POST' ? req.body : req.query;
+  
+  // Accept either raw data (data field) or address+chain (legacy)
+  let investigationData;
+  if (body.data) {
+    investigationData = typeof body.data === 'string' ? JSON.parse(body.data) : body.data;
+  } else {
+    return res.status(400).json({ error: 'Missing data field. POST { data: <investigation_result> }' });
   }
 
-  const targetChain = chain || 'base';
-
   try {
-    // ═══════════════════════════════════════════
-    // PHASE 1: Get investigation data from /api/investigate
-    // ═══════════════════════════════════════════
-    const host = req.headers.host || 'localhost:3000';
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const baseUrl = `${protocol}://${host}`;
-
-    const investigateRes = await fetch(`${baseUrl}/api/investigate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address, chain: targetChain }),
-      signal: AbortSignal.timeout(45000),
-    });
-
-    if (!investigateRes.ok) {
-      const errData = await investigateRes.json().catch(() => ({}));
-      return res.status(investigateRes.status).json({
-        error: 'Investigation failed',
-        details: errData.error || 'Could not fetch investigation data',
-      });
-    }
-
-    const investigationData = await investigateRes.json();
 
     // ═══════════════════════════════════════════
     // PHASE 2: Build prompts and call LLM
