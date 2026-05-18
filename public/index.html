@@ -239,7 +239,7 @@ footer .links a:hover{color:var(--green)}
       <a href="#about">About</a>
       <a href="#signals">Signals</a>
       <a href="#scanner">Scanner</a>
-      <a href="#install">Install</a>
+      <a href="#open-source">Open Source</a>
       <a href="/investigate" style="color:var(--amber)">Investigate</a>
     </div>
     <a href="/investigate" class="btn" style="text-decoration:none">LAUNCH APP</a>
@@ -279,8 +279,8 @@ footer .links a:hover{color:var(--green)}
   <p class="sub fade-in">ExitWise uses <span style="color:var(--green)">14 rule-based heuristics</span> to score risk from <span class="low">0 (safe)</span> to <span class="high">22 (critical)</span>. Not ML. Not AI. Just math. Analyzes token metrics via DexScreener + Blockscout on-chain data on Base chain.</p>
   <p class="note fade-in">Higher score = higher risk = consider exiting.</p>
   <div class="cta fade-in">
-    <a href="#install" class="btn-primary">Install Now →</a>
-    <a href="#scanner" class="btn-secondary">Try Scanner</a>
+    <a href="#scanner" class="btn-primary">Try Scanner →</a>
+    <a href="/investigate" class="btn-secondary">Deep Investigate</a>
   </div>
   <div class="stats fade-in">
     <div><div class="val">14</div><div class="lbl">SCORING SIGNALS</div></div>
@@ -425,33 +425,19 @@ footer .links a:hover{color:var(--green)}
   </div>
 </section>
 
-<!-- INSTALL -->
-<section id="install">
-  <div class="container">
-    <div class="section-label">INSTALL</div>
-    <h2 class="section-title">Get started in 30 seconds.</h2>
-    <p class="section-desc">Self-host your own instance. Clone, deploy, done.</p>
-    <div class="install-block">
-      <div class="comment"># Clone the repo</div>
-      <div class="cmd">$ git clone https://github.com/exitwisespace/exitwise-landing.git</div>
-      <div class="cmd">$ cd exitwise-landing</div>
-      <div class="comment" style="margin-top:16px"># Install & run locally</div>
-      <div class="cmd">$ npm i -g vercel</div>
-      <div class="cmd">$ vercel dev</div>
-      <div class="comment" style="margin-top:16px"># Or deploy your own instance</div>
-      <div class="cmd">$ vercel deploy --prod</div>
+<!-- OPEN SOURCE -->
+<section id="open-source" style="padding:64px 0">
+  <div class="container" style="text-align:center">
+    <div class="section-label">OPEN SOURCE</div>
+    <h2 class="section-title">Audit the code yourself.</h2>
+    <p class="section-desc" style="margin:0 auto 32px;text-align:center">ExitWise is fully open source. No hidden calls, no data collection. Read every line.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="https://github.com/exitwisespace/exitwise-landing" target="_blank" class="btn-primary" style="text-decoration:none">View on GitHub →</a>
     </div>
-    <div class="quickstart">
-      <h3>API Usage</h3>
-      <div class="qs-item"><code>GET /api/scan?address=0x...&chain=base</code><span>Quick risk scan — returns score, signals, metrics</span></div>
-      <div class="qs-item"><code>GET /api/investigate?address=0x...&chain=base</code><span>Full OSINT — contract audit, deployer forensics, holder analysis</span></div>
-      <div class="qs-item"><code>POST /api/ai  { data: investigate_result }</code><span>AI-powered analysis — plain English verdict</span></div>
-    </div>
-    <div class="channels">
-      <div class="channel"><div class="icon">🌐</div><h3>Web App</h3><p>Full scanner + investigation UI. No install needed.</p></div>
-      <div class="channel"><div class="icon">📡</div><h3>REST API</h3><p>JSON endpoints for scanning and investigation. Build on top.</p></div>
-      <div class="channel"><div class="icon">🤖</div><h3>AI Agent</h3><p>LLM-powered analysis. Get plain English safety verdicts.</p></div>
-      <div class="channel"><div class="icon">🔗</div><h3>Open Source</h3><p>MIT licensed. Self-host, fork, or contribute.</p></div>
+    <div style="margin-top:32px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap">
+      <div style="font-size:12px;color:var(--muted)">MIT License</div>
+      <div style="font-size:12px;color:var(--muted)">No tracking</div>
+      <div style="font-size:12px;color:var(--muted)">No API keys required</div>
     </div>
   </div>
 </section>
