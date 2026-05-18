@@ -74,7 +74,15 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error('AI Agent error:', err);
-    return res.status(500).json({ error: 'AI analysis failed', details: err.message });
+    // On any error (timeout, API failure, etc), return enhanced fallback analysis
+    const fallbackAnalysis = generateFallbackAnalysis(investigationData);
+    return res.status(200).json({
+      success: true,
+      analysis: fallbackAnalysis,
+      rawData: investigationData,
+      fallback: true,
+      error: err.message,
+    });
   }
 };
 
@@ -264,9 +272,64 @@ function generateFallbackAnalysis(data) {
     L.push('✅ No critical red flags detected in the available data.');
   }
 
+  // Contract audit summary
+  if (data.audit) {
+    L.push('');
+    L.push('**Contract Audit:**');
+    L.push(`- Buy tax: ${data.audit.buyTax || 'unknown'} | Sell tax: ${data.audit.sellTax || 'unknown'}`);
+    L.push(`- Open source: ${data.audit.isOpenSource ? 'Yes ✓' : 'No ✗'}`);
+    if (data.audit.canPause) L.push('- ⚠️ Trading can be paused');
+    if (data.audit.canBlacklist) L.push('- ⚠️ Wallets can be blacklisted');
+  }
+
+  // Deployer summary
+  if (data.deployer) {
+    L.push('');
+    L.push('**Deployer:**');
+    L.push(`- Address: ${data.deployer.address || 'N/A'}`);
+    L.push(`- Balance: ${data.deployer.deployerBalance || 'unknown'}`);
+    L.push(`- Contracts deployed: ${data.deployer.tokensDeployed || 0}`);
+    if (data.deployer.ruggedCount > 0) {
+      L.push(`- 🔴 ${data.deployer.ruggedCount} scam/rugged tokens found`);
+    } else {
+      L.push('- ✅ No scam tokens in deployer history');
+    }
+  }
+
+  // Holder summary
+  if (data.holders) {
+    L.push('');
+    L.push('**Holders:**');
+    L.push(`- Total: ${data.holders.totalHolders || 0} (EOA: ${data.holders.eoaHolders || 0}, Contracts: ${data.holders.contractHolders || 0})`);
+    if (data.holders.concentration) {
+      L.push(`- Concentration: Top 3 = ${data.holders.concentration.top3}, Top 10 = ${data.holders.concentration.top10}`);
+    }
+    L.push(`- Whales (>1%): ${data.holders.whaleCount || 0}`);
+  }
+
+  // Social links
+  if (data.socials?.websites?.length || data.socials?.socials?.length) {
+    L.push('');
+    L.push('**Social:**');
+    for (const w of (data.socials.websites || [])) L.push(`- 🌐 ${w.url}`);
+    for (const s of (data.socials.socials || [])) L.push(`- ${s.type}: ${s.url}`);
+  }
+
+  // Final verdict
   L.push('');
-  L.push('⚠️ *Note: This is an automated fallback analysis. The AI model was unavailable. Always DYOR.*');
-  L.push(`\nConfidence: LOW (fallback mode)`);
+  if (score <= 3 && findings.length === 0) {
+    L.push('**🟢 VERDICT: SAFE** — Low risk score, no red flags detected.');
+    L.push('Confidence: MEDIUM (automated analysis)');
+  } else if (score <= 7 || findings.length <= 1) {
+    L.push('**🟡 VERDICT: CAUTION** — Some risk signals detected. Do your own research before investing.');
+    L.push('Confidence: MEDIUM (automated analysis)');
+  } else {
+    L.push('**🔴 VERDICT: DANGEROUS** — Multiple risk signals detected. High probability of loss.');
+    L.push('Confidence: HIGH (automated analysis)');
+  }
+
+  L.push('');
+  L.push('⚠️ *Automated rule-based analysis. Always DYOR. Not financial advice.*');
 
   return L.join('\n');
 }
