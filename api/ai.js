@@ -56,9 +56,7 @@ module.exports = async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LLM_API_KEY}`,
-        'HTTP-Referer': 'https://exitwise.vercel.app',
-        'X-Title': 'ExitWise AI Agent',
+        'Authorization': `Bearer ${LLM_API_KEY}`, 
       },
       body: JSON.stringify({
         model: LLM_MODEL,
@@ -66,10 +64,10 @@ module.exports = async function handler(req, res) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 2048,
+        max_tokens: 1024,
         temperature: 0.3,
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!llmRes.ok) {
@@ -86,7 +84,8 @@ module.exports = async function handler(req, res) {
     }
 
     const llmData = await llmRes.json();
-    const analysis = llmData.choices?.[0]?.message?.content || 'No analysis generated.';
+    const msg = llmData.choices?.[0]?.message || {};
+    const analysis = msg.content || msg.reasoning_content || 'No analysis generated.';
 
     return res.status(200).json({
       success: true,
