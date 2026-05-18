@@ -142,4 +142,4 @@ MIT
 
 ---
 
-Built with 🧠 by [@greenshit333](https://twitter.com/greenshit333)
+MIT License
