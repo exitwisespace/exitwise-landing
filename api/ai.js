@@ -2,9 +2,9 @@
 // Honey Router: AI-powered investigation analysis
 // Calls /api/investigate, then feeds data to LLM for natural language report
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-const OPENROUTER_MODEL = 'google/gemini-2.0-flash-001';
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const LLM_API_KEY = process.env.LLM_API_KEY || '';
+const LLM_MODEL = process.env.LLM_MODEL || 'mimo-v2.5-pro';
+const LLM_BASE_URL = process.env.LLM_BASE_URL || 'https://opengateway.gitlawb.com/v1/chat/completions';
 
 module.exports = async function handler(req, res) {
   // CORS
@@ -52,16 +52,16 @@ module.exports = async function handler(req, res) {
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildUserPrompt(investigationData);
 
-    const llmRes = await fetch(OPENROUTER_URL, {
+    const llmRes = await fetch(LLM_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${LLM_API_KEY}`,
         'HTTP-Referer': 'https://exitwise.vercel.app',
         'X-Title': 'ExitWise AI Agent',
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model: LLM_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
