@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExitWise — Deep Investigation</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0a;--card:#111;--border:#1a1a2e;
+  --green:#00ff88;--cyan:#00d4ff;--amber:#ffaa00;
+  --red:#ff4444;--red5:#ff2222;--muted:#666;--text:#e0e0e0;
+  --font:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+::selection{background:var(--green);color:#000}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+
+.grid-bg{background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);background-size:40px 40px}
+
+@keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+body::after{content:'';position:fixed;top:0;left:0;width:100%;height:4px;background:rgba(0,255,136,.03);animation:scanline 8s linear infinite;pointer-events:none;z-index:999}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;border-bottom:1px solid var(--border);background:rgba(10,10,10,.9);backdrop-filter:blur(12px);height:56px;display:flex;align-items:center;padding:0 24px}
+.nav .logo{color:var(--green);font-weight:700;font-size:18px;letter-spacing:.1em}.nav .logo span{color:#fff}
+.nav .back{color:var(--muted);font-size:12px;margin-left:24px;transition:color .2s}.nav .back:hover{color:var(--green)}
+
+.container{max-width:900px;margin:0 auto;padding:72px 24px 48px}
+
+.search-box{border:1px solid var(--border);background:var(--card);padding:24px;margin-bottom:32px}
+.search-box h2{color:#fff;font-size:18px;margin-bottom:16px}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;outline:none}
+.search-row input:focus{border-color:var(--green)}
+.btn-primary{padding:10px 20px;background:var(--green);color:#000;font-weight:600;font-size:13px;border:none;cursor:pointer;font-family:var(--font);transition:opacity .2s;white-space:nowrap}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+
+/* Progress */
+.progress{border:1px solid var(--border);background:var(--card);padding:20px;margin-bottom:24px;display:none}
+.progress .step{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--muted)}
+.progress .step.active{color:var(--green)}.progress .step.done{color:var(--cyan)}.progress .step.error{color:var(--red)}
+.progress .step .icon{width:16px;text-align:center}
+
+/* Report */
+.report{display:none}
+.report-header{border:1px solid var(--border);background:var(--card);padding:24px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.report-header .token-name{font-size:24px;font-weight:700;color:#fff}
+.report-header .token-meta{font-size:11px;color:var(--muted)}
+.score-big{font-size:36px;font-weight:700}
+.score-big.safe{color:var(--green)}.score-big.partial{color:var(--amber)}.score-big.major{color:var(--red)}.score-big.full{color:var(--red5)}
+.verdict-label{font-size:14px;font-weight:600}
+
+.section{border:1px solid var(--border);background:var(--card);margin-bottom:16px;overflow:hidden}
+.section-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .2s}
+.section-header:hover{background:rgba(255,255,255,.02)}
+.section-header h3{font-size:14px;font-weight:600;color:#fff}
+.section-header .icon{font-size:16px}
+.section-body{padding:20px;font-size:12px;line-height:1.8}
+.section-body.collapsed{display:none}
+.section-body ul{list-style:none;padding:0}
+.section-body li{padding:3px 0}
+.section-body .flag{color:var(--red)}.section-body .safe{color:var(--green)}.section-body .warn{color:var(--amber)}
+
+.markdown{white-space:pre-wrap;font-size:12px;line-height:1.8}
+.markdown h1,.markdown h2,.markdown h3{color:#fff;margin:16px 0 8px}
+.markdown h1{font-size:18px}.markdown h2{font-size:15px;color:var(--green)}.markdown h3{font-size:13px}
+.markdown strong{color:#fff}
+.markdown code{background:rgba(0,255,136,.1);padding:1px 4px;border-radius:2px;font-size:11px}
+.markdown hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.markdown li{padding:2px 0}
+
+.error{border:1px solid var(--red);background:rgba(255,68,68,.05);padding:16px;color:var(--red);display:none;margin-bottom:16px}
+
+@media(max-width:768px){
+  .search-row{flex-direction:column}
+  .report-header{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body class="grid-bg">
+
+<div class="nav">
+  <a href="/" class="logo">EXIT<span>WISE</span></a>
+  <a href="/" class="back">← Back to Scanner</a>
+</div>
+
+<div class="container">
+  <div class="search-box">
+    <h2>🔍 Deep Investigation</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Paste a contract address for a full OSINT investigation — contract audit, deployer forensics, holder analysis, and risk assessment.</p>
+    <div class="search-row">
+      <input type="text" id="addrInput" placeholder="0x... contract address" autofocus>
+      <button id="investigateBtn" onclick="investigate()" class="btn-primary">INVESTIGATE</button>
+    </div>
+  </div>
+
+  <div class="error" id="errorMsg"></div>
+
+  <div class="progress" id="progress">
+    <div class="step" id="step1"><span class="icon">○</span> Fetching DexScreener data...</div>
+    <div class="step" id="step2"><span class="icon">○</span> Querying Blockscout on-chain...</div>
+    <div class="step" id="step3"><span class="icon">○</span> Running TACHITRACK OSINT...</div>
+    <div class="step" id="step4"><span class="icon">○</span> GoPlus contract audit...</div>
+    <div class="step" id="step5"><span class="icon">○</span> Generating report...</div>
+  </div>
+
+  <div class="report" id="report"></div>
+</div>
+
+<script>
+const addrInput = document.getElementById('addrInput');
+const investigateBtn = document.getElementById('investigateBtn');
+const progressEl = document.getElementById('progress');
+const reportEl = document.getElementById('report');
+const errorEl = document.getElementById('errorMsg');
+
+// Check URL params
+const urlParams = new URLSearchParams(window.location.search);
+const addrParam = urlParams.get('address');
+if (addrParam) {
+  addrInput.value = addrParam;
+  investigate();
+}
+
+addrInput.addEventListener('keydown', e => { if (e.key === 'Enter') investigate(); });
+
+async function investigate() {
+  const address = addrInput.value.trim();
+  if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    showError('Invalid contract address.');
+    return;
+  }
+
+  // Update URL
+  history.replaceState(null, '', `?address=${address}`);
+
+  // Reset UI
+  investigateBtn.disabled = true;
+  investigateBtn.textContent = 'INVESTIGATING...';
+  errorEl.style.display = 'none';
+  reportEl.style.display = 'none';
+  progressEl.style.display = 'block';
+
+  // Animate progress steps
+  const steps = ['step1','step2','step3','step4','step5'];
+  steps.forEach(s => {
+    const el = document.getElementById(s);
+    el.className = 'step';
+    el.querySelector('.icon').textContent = '○';
+  });
+
+  // Simulate progress animation
+  for (let i = 0; i < steps.length; i++) {
+    const el = document.getElementById(steps[i]);
+    el.className = 'step active';
+    el.querySelector('.icon').textContent = '◉';
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
+  }
+
+  try {
+    const res = await fetch(`/api/investigate?address=${address}&chain=base`);
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      showError(data.error || 'Investigation failed.');
+      return;
+    }
+
+    // Mark all steps done
+    steps.forEach(s => {
+      const el = document.getElementById(s);
+      el.className = 'step done';
+      el.querySelector('.icon').textContent = '✓';
+    });
+
+    renderReport(data);
+  } catch (err) {
+    showError('Network error. Check your connection.');
+    steps.forEach(s => {
+      const el = document.getElementById(s);
+      if (el.classList.contains('active')) {
+        el.className = 'step error';
+        el.querySelector('.icon').textContent = '✗';
+      }
+    });
+  } finally {
+    investigateBtn.disabled = false;
+    investigateBtn.textContent = 'INVESTIGATE';
+  }
+}
+
+function showError(msg) {
+  errorEl.textContent = '⚠ ' + msg;
+  errorEl.style.display = 'block';
+  progressEl.style.display = 'none';
+}
+
+function renderReport(data) {
+  reportEl.style.display = 'block';
+  const { token, scan, socials, deployer, audit, osint, holders, report } = data;
+
+  const scoreClass = scan.score <= 3 ? 'safe' : scan.score <= 7 ? 'partial' : scan.score <= 12 ? 'major' : 'full';
+
+  let html = '';
+
+  // Header
+  html += `<div class="report-header">
+    <div>
+      <div class="token-name">${token.name} (${token.symbol})</div>
+      <div class="token-meta">${token.chain?.toUpperCase() || 'BASE'} · ${token.dex || 'N/A'} · ${token.address.slice(0,6)}...${token.address.slice(-4)}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="score-big ${scoreClass}">${scan.score}/${scan.maxScore}</div>
+      <div class="verdict-label" style="color:${scoreClass === 'safe' ? 'var(--green)' : scoreClass === 'partial' ? 'var(--amber)' : scoreClass === 'major' ? 'var(--red)' : 'var(--red5)'}">${scan.verdict}</div>
+    </div>
+  </div>`;
+
+  // Signals
+  if (scan.signals?.length) {
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">⚡</span><h3>Triggered Signals (${scan.signals.length})</h3></div>
+      <div class="section-body"><ul>`;
+    for (const s of scan.signals) {
+      const icon = s.risk === 'CRITICAL' ? '🔴' : s.risk === 'HIGH' ? '🟠' : '🟡';
+      html += `<li>${icon} <strong>#${s.id} ${s.name}</strong> — ${s.risk} (+${s.points})</li>`;
+    }
+    html += `</ul></div></div>`;
+  }
+
+  // Contract Audit
+  if (audit) {
+    const flags = [];
+    if (audit.isHoneypot) flags.push('🍯 HONEYPOT');
+    if (audit.canMint) flags.push('🖨️ Can mint');
+    if (audit.canPause) flags.push('⏸️ Can pause');
+    if (audit.canBlacklist) flags.push('🚫 Can blacklist');
+    if (audit.hiddenOwner) flags.push('👤 Hidden owner');
+    if (audit.selfDestruct) flags.push('💣 Self-destruct');
+    if (audit.cannotSellAll) flags.push('🔒 Cannot sell all');
+    if (audit.ownerChangeBalance) flags.push('✏️ Owner can change balances');
+
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🛡️</span><h3>Contract Audit (GoPlus)</h3></div>
+      <div class="section-body">`;
+    if (flags.length) {
+      html += `<ul>`;
+      flags.forEach(f => html += `<li class="flag">${f}</li>`);
+      html += `</ul>`;
+    } else {
+      html += `<p class="safe">✅ No major red flags detected.</p>`;
+    }
+    html += `<ul>
+      <li>Buy tax: ${audit.buyTax}</li>
+      <li>Sell tax: ${audit.sellTax}</li>
+      <li>Open source: ${audit.isOpenSource ? '✓' : '✗'}</li>
+      ${audit.holderCount ? `<li>Holders: ${audit.holderCount.toLocaleString()}</li>` : ''}
+    </ul></div></div>`;
+  }
+
+  // Social Links
+  if (socials?.websites?.length || socials?.socials?.length) {
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🌐</span><h3>Social & Links</h3></div>
+      <div class="section-body"><ul>`;
+    for (const w of (socials.websites || [])) html += `<li>🌐 <a href="${w.url}" target="_blank">${w.url}</a></li>`;
+    for (const s of (socials.socials || [])) {
+      const icons = { twitter: '🐦', telegram: '✈️', discord: '💬' };
+      html += `<li>${icons[s.type] || '🔗'} <a href="${s.url}" target="_blank">${s.type}: ${s.url}</a></li>`;
+    }
+    html += `</ul></div></div>`;
+  }
+
+  // OSINT
+  if (osint) {
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🕵️</span><h3>OSINT Intelligence (TACHITRACK)</h3></div>
+      <div class="section-body"><ul>`;
+    if (osint.ens) html += `<li>ENS: <strong>${osint.ens}</strong></li>`;
+    if (osint.isContract !== null) html += `<li>Is contract: ${osint.isContract ? 'Yes' : 'No'}</li>`;
+    if (osint.ofacFlagged) html += `<li class="flag">🔴 OFAC SANCTIONED</li>`;
+    if (osint.riskScore) html += `<li>Risk score: ${osint.riskScore}/100</li>`;
+    if (osint.riskFlags?.length) html += `<li>Flags: ${osint.riskFlags.join(', ')}</li>`;
+    html += `</ul>`;
+    if (osint.lookupUrls) {
+      html += `<p style="margin-top:12px;font-size:11px;color:var(--muted)">Investigation links:</p><ul>`;
+      for (const [name, url] of Object.entries(osint.lookupUrls)) {
+        if (url) html += `<li><a href="${url}" target="_blank">${name}</a></li>`;
+      }
+      html += `</ul>`;
+    }
+    html += `</div></div>`;
+  }
+
+  // Deployer
+  if (deployer) {
+    const deployerRiskCount = deployer.riskFlags?.length || 0;
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🔎</span><h3>Deployer Forensics ${deployerRiskCount ? '(' + deployerRiskCount + ' flags)' : ''}</h3></div>
+      <div class="section-body">
+        <ul>
+          <li>Address: <code>${deployer.address}</code></li>
+          ${deployer.creationTx ? `<li>Creation tx: <code>${deployer.creationTx}</code></li>` : ''}
+          ${deployer.creationDate ? `<li>Deployed: ${deployer.creationDate}</li>` : ''}
+          ${deployer.balance !== undefined ? `<li>Balance: <strong>${deployer.balance} ETH</strong></li>` : ''}
+          ${deployer.tokensDeployed !== undefined ? `<li>Tokens deployed: <strong>${deployer.tokensDeployed}</strong></li>` : ''}
+        </ul>`;
+
+    // Deployed tokens list
+    if (deployer.deployedTokens?.length) {
+      html += `<p style="margin-top:12px;color:var(--cyan);font-weight:600">Tokens deployed by this address:</p><ul>`;
+      for (const t of deployer.deployedTokens) {
+        const label = typeof t === 'string' ? t : (t.name ? `${t.name} (${t.symbol || '?'})` : t.address || t);
+        const addr = typeof t === 'object' && t.address ? ` — <code>${t.address.slice(0,6)}...${t.address.slice(-4)}</code>` : '';
+        html += `<li>• ${label}${addr}</li>`;
+      }
+      html += `</ul>`;
+    }
+
+    // Rugged tokens
+    if (deployer.ruggedTokens?.length) {
+      html += `<p style="margin-top:12px;color:var(--red);font-weight:600">🚩 Rugged / scam tokens:</p><ul>`;
+      for (const t of deployer.ruggedTokens) {
+        const label = typeof t === 'string' ? t : (t.name ? `${t.name} (${t.symbol || '?'})` : t.address || t);
+        const addr = typeof t === 'object' && t.address ? ` — <code>${t.address.slice(0,6)}...${t.address.slice(-4)}</code>` : '';
+        html += `<li class="flag">🚩 ${label}${addr}</li>`;
+      }
+      html += `</ul>`;
+    }
+
+    // Other tokens held
+    if (deployer.otherTokensHeld?.length) {
+      html += `<p style="margin-top:12px;color:var(--amber);font-weight:600">Other tokens held:</p><ul>`;
+      for (const t of deployer.otherTokensHeld) {
+        const name = t.name || t.symbol || t.address || '?';
+        const details = [];
+        if (t.marketCap) details.push(`MC: $${typeof t.marketCap === 'number' ? t.marketCap.toLocaleString() : t.marketCap}`);
+        if (t.holders) details.push(`Holders: ${t.holders.toLocaleString()}`);
+        if (t.reputation) details.push(`Rep: ${t.reputation}`);
+        html += `<li>• ${name} ${details.length ? '<span style="color:var(--muted)">(' + details.join(' · ') + ')</span>' : ''}</li>`;
+      }
+      html += `</ul>`;
+    }
+
+    // Risk flags
+    if (deployer.riskFlags?.length) {
+      html += `<p style="margin-top:12px;color:var(--red);font-weight:600">Risk flags:</p><ul>`;
+      for (const f of deployer.riskFlags) {
+        html += `<li class="flag">⚠️ ${f}</li>`;
+      }
+      html += `</ul>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  // Holders
+  if (holders) {
+    const totalH = holders.totalHolders || 0;
+    const scamCount = holders.scamTagged || 0;
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">👥</span><h3>Holder Analysis ${totalH ? '(' + totalH.toLocaleString() + ' holders)' : ''}</h3></div>
+      <div class="section-body">
+        <ul>
+          ${holders.totalHolders !== undefined ? `<li>Total holders: <strong>${holders.totalHolders.toLocaleString()}</strong></li>` : ''}
+          ${holders.contractHolders !== undefined ? `<li>Contract holders: <strong>${holders.contractHolders.toLocaleString()}</strong></li>` : ''}
+          ${holders.eoaHolders !== undefined ? `<li>EOA holders: <strong>${holders.eoaHolders.toLocaleString()}</strong></li>` : ''}
+          ${holders.scamTagged !== undefined ? `<li class="${scamCount > 0 ? 'flag' : 'safe'}">Scam-tagged: <strong>${scamCount}</strong></li>` : ''}
+        </ul>`;
+
+    // Concentration
+    if (holders.concentration) {
+      const c = holders.concentration;
+      html += `<p style="margin-top:12px;color:var(--cyan);font-weight:600">Concentration:</p><ul>`;
+      if (c.top3 !== undefined) html += `<li class="${c.top3 > 50 ? 'flag' : c.top3 > 30 ? 'warn' : 'safe'}">Top 3 wallets: <strong>${c.top3}%</strong></li>`;
+      if (c.top10 !== undefined) html += `<li class="${c.top10 > 80 ? 'flag' : c.top10 > 60 ? 'warn' : 'safe'}">Top 10 wallets: <strong>${c.top10}%</strong></li>`;
+      html += `</ul>`;
+    }
+
+    // Whale list
+    if (holders.whales?.length) {
+      html += `<p style="margin-top:12px;color:var(--amber);font-weight:600">🐋 Whale wallets:</p><ul>`;
+      for (const w of holders.whales) {
+        const addr = w.address ? `${w.address.slice(0,6)}...${w.address.slice(-4)}` : '?';
+        const pct = w.percentage !== undefined ? ` — <strong>${w.percentage}%</strong>` : '';
+        const tag = w.tag ? ` <span style="color:var(--muted)">[${w.tag}]</span>` : '';
+        const isScam = w.tag && (w.tag.toLowerCase().includes('scam') || w.tag.toLowerCase().includes('rug'));
+        html += `<li class="${isScam ? 'flag' : ''}">🐋 <code>${addr}</code>${pct}${tag}</li>`;
+      }
+      html += `</ul>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  // Full markdown report
+  html += `<div class="section">
+    <div class="section-header" onclick="toggleSection(this)"><span class="icon">📄</span><h3>Full Report (Markdown)</h3></div>
+    <div class="section-body"><div class="markdown">${renderMarkdown(report)}</div></div>
+  </div>`;
+
+  reportEl.innerHTML = html;
+}
+
+function renderMarkdown(md) {
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('collapsed');
+}
+</script>
+</body>
+</html>

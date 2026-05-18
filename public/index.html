@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExitWise — Exit Strategy Agent</title>
+<meta name="description" content="Heuristic-based exit strategy agent. Check the risk score before you panic sell.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0a;--card:#111;--border:#1a1a2e;
+  --green:#00ff88;--cyan:#00d4ff;--amber:#ffaa00;
+  --red:#ff4444;--red5:#ff2222;--muted:#666;--text:#e0e0e0;
+  --font:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
+::selection{background:var(--green);color:#000}
+a{color:inherit;text-decoration:none}
+
+/* Grid bg */
+.grid-bg{background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);background-size:40px 40px}
+
+/* Scanline */
+@keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+body::after{content:'';position:fixed;top:0;left:0;width:100%;height:4px;background:rgba(0,255,136,.03);animation:scanline 8s linear infinite;pointer-events:none;z-index:999}
+
+/* Glow */
+.glow{text-shadow:0 0 10px rgba(0,255,136,.5),0 0 40px rgba(0,255,136,.2)}
+.glow-amber{text-shadow:0 0 10px rgba(255,170,0,.5),0 0 40px rgba(255,170,0,.2)}
+.glow-red{text-shadow:0 0 10px rgba(255,68,68,.5),0 0 40px rgba(255,68,68,.2)}
+
+/* Ticker */
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-wrap{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(17,17,17,.5);overflow:hidden;padding:12px 0}
+.ticker{display:flex;white-space:nowrap;animation:ticker 30s linear infinite}
+.ticker span{margin:0 24px;font-size:11px;letter-spacing:.15em;color:var(--muted)}
+.ticker .sep{color:var(--green)}
+
+/* Cursor blink */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cursor{animation:blink 1s step-end infinite}
+
+/* Fade in */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .6s ease-out forwards;opacity:0}
+.fade-in:nth-child(2){animation-delay:.1s}
+.fade-in:nth-child(3){animation-delay:.2s}
+.fade-in:nth-child(4){animation-delay:.3s}
+.fade-in:nth-child(5){animation-delay:.4s}
+.fade-in:nth-child(6){animation-delay:.5s}
+
+/* Layout */
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+section{padding:96px 0}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:50;border-bottom:1px solid var(--border);background:rgba(10,10,10,.85);backdrop-filter:blur(12px)}
+nav .inner{max-width:1200px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+nav .logo{color:var(--green);font-weight:700;font-size:18px;letter-spacing:.1em}
+nav .logo span{color:#fff}
+nav .links{display:flex;gap:32px;font-size:13px}
+nav .links a{color:var(--muted);transition:color .2s}
+nav .links a:hover{color:var(--green)}
+nav .btn{padding:6px 16px;font-size:11px;border:1px solid var(--muted);color:var(--muted);cursor:pointer;background:none;font-family:var(--font);transition:all .3s}
+nav .btn:hover{border-color:var(--green);color:var(--green)}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding-top:56px}
+.hero .tag{font-size:11px;letter-spacing:.3em;color:var(--muted);border:1px solid var(--border);padding:6px 16px;margin-bottom:32px}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;margin-bottom:24px}
+.hero h1 .green{color:var(--green)}
+.hero h1 .white{color:#fff}
+.hero .sub{color:var(--muted);max-width:640px;font-size:clamp(13px,1.5vw,16px);line-height:1.7;margin-bottom:12px}
+.hero .note{color:var(--muted);font-size:11px;margin-bottom:40px}
+.hero .note .low{color:var(--green);font-weight:700}
+.hero .note .high{color:var(--red);font-weight:700}
+.hero .cta{display:flex;gap:16px;margin-bottom:64px;flex-wrap:wrap;justify-content:center}
+.btn-primary{padding:12px 24px;background:var(--green);color:#000;font-weight:600;font-size:13px;border:none;cursor:pointer;font-family:var(--font);transition:opacity .2s}
+.btn-primary:hover{opacity:.9}
+.btn-secondary{padding:12px 24px;border:1px solid var(--muted);color:var(--muted);font-size:13px;background:none;cursor:pointer;font-family:var(--font);transition:all .3s}
+.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center}
+.stats .val{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:700;color:var(--green)}
+.stats .lbl{font-size:10px;letter-spacing:.15em;color:var(--muted);margin-top:4px}
+.online{position:absolute;bottom:32px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* About */
+.section-label{color:var(--green);font-size:11px;letter-spacing:.3em;margin-bottom:16px}
+.section-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:700;color:#fff;margin-bottom:16px}
+.section-desc{color:var(--muted);max-width:640px;font-size:14px;line-height:1.7;margin-bottom:48px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.feature{border:1px solid var(--border);background:var(--card);padding:24px;transition:border-color .3s}
+.feature:hover{border-color:rgba(0,255,136,.3)}
+.feature .icon{font-size:24px;margin-bottom:12px}
+.feature h3{font-size:14px;font-weight:600;color:#fff;margin-bottom:8px;transition:color .3s}
+.feature:hover h3{color:var(--green)}
+.feature p{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* Signals */
+.signals-intro{margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.7}
+.signals-intro strong{color:var(--red)}
+.signal-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px;font-size:11px}
+.signal-legend span{padding:4px 8px;border:1px solid}
+.signal-group-title{color:var(--green);font-size:11px;letter-spacing:.2em;margin-bottom:16px;margin-top:32px}
+.signal-group-title.v2{color:var(--amber)}
+.signals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.signal{border:1px solid var(--border);background:var(--card);padding:16px;transition:border-color .3s}
+.signal:hover{border-color:rgba(0,255,136,.3)}
+.signal .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.signal .id{font-size:11px;color:var(--muted)}
+.signal .badge{font-size:9px;letter-spacing:.1em;padding:2px 8px;border:1px solid}
+.badge.critical{border-color:var(--red);color:var(--red)}
+.badge.high{border-color:var(--amber);color:var(--amber)}
+.badge.medium{border-color:var(--cyan);color:var(--cyan)}
+.signal h4{font-size:14px;font-weight:600;color:#fff;margin-bottom:4px}
+.signal .trigger{font-size:11px;color:var(--green);font-family:var(--font);margin-bottom:8px}
+.signal .desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* Score ranges */
+.ranges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:48px}
+.range{padding:20px;text-align:center;border:1px solid;background:rgba(255,255,255,.02)}
+.range.hold{border-color:var(--green);background:rgba(0,255,136,.03)}
+.range.partial{border-color:var(--amber);background:rgba(255,170,0,.03)}
+.range.major{border-color:var(--red);background:rgba(255,68,68,.03)}
+.range.full{border-color:var(--red5);background:rgba(255,34,34,.05)}
+.range .score{font-size:20px;font-weight:700;margin-bottom:4px}
+.range .verdict{font-size:11px;color:var(--muted);margin-bottom:2px}
+.range .action{font-size:10px}
+.range.hold .score,.range.hold .action{color:var(--green)}
+.range.partial .score,.range.partial .action{color:var(--amber)}
+.range.major .score,.range.major .action{color:var(--red)}
+.range.full .score,.range.full .action{color:var(--red5)}
+
+/* Simulator */
+.simulator{border:1px solid var(--border);background:var(--card);padding:32px;margin-top:48px}
+.sim-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.sim-header h3{color:#fff;font-size:16px}
+.sim-input{display:flex;align-items:center;gap:12px}
+.sim-input label{font-size:12px;color:var(--muted)}
+.sim-input input[type=range]{width:200px;accent-color:var(--green)}
+.sim-input .score-display{font-size:24px;font-weight:700;min-width:60px;text-align:center}
+.sim-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:24px}
+.sim-bar-fill{height:100%;transition:width .3s,border-radius .3s}
+.sim-result{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sim-verdict{font-size:18px;font-weight:700}
+.sim-action{font-size:14px}
+.sim-signals{font-size:12px;color:var(--muted)}
+.sim-signals div{padding:4px 0;border-bottom:1px solid var(--border)}
+.sim-signals .triggered{color:var(--red)}
+.sim-signals .safe{color:var(--green)}
+
+/* Install */
+.install-block{border:1px solid var(--border);background:var(--card);padding:24px;font-family:var(--font);font-size:13px;margin-bottom:32px}
+.install-block .comment{color:var(--muted)}
+.install-block .cmd{color:var(--green)}
+.quickstart{margin-bottom:32px}
+.quickstart h3{color:#fff;font-size:14px;font-weight:600;margin-bottom:16px}
+.qs-item{border:1px solid var(--border);background:var(--card);padding:12px 16px;display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.qs-item code{color:var(--green);font-size:12px}
+.qs-item span{color:var(--muted);font-size:11px}
+.channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.channel{border:1px solid var(--border);background:var(--card);padding:20px;transition:border-color .3s}
+.channel:hover{border-color:rgba(0,255,136,.3)}
+.channel .icon{font-size:24px;margin-bottom:8px}
+.channel h3{color:#fff;font-size:13px;font-weight:600;margin-bottom:4px}
+.channel p{color:var(--muted);font-size:11px;line-height:1.5}
+
+/* Console */
+.console-wrap{border:1px solid var(--border);background:var(--card);overflow:hidden;max-width:720px;margin:0 auto}
+.console-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(10,10,10,.5)}
+.console-dots{display:flex;gap:8px}
+.console-dots span{width:12px;height:12px;border-radius:50%}
+.console-dots .r{background:rgba(255,68,68,.8)}
+.console-dots .y{background:rgba(255,170,0,.8)}
+.console-dots .g{background:rgba(0,255,136,.8)}
+.console-tabs{display:flex;border-bottom:1px solid var(--border)}
+.console-tabs button{padding:12px 24px;font-size:11px;letter-spacing:.1em;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--font);transition:all .2s}
+.console-tabs button.active{color:var(--green);border-bottom-color:var(--green);background:rgba(0,255,136,.03)}
+.console-toggle{padding:12px 24px;display:flex;gap:8px}
+.console-toggle button{padding:4px 12px;font-size:11px;border:1px solid var(--muted);color:var(--muted);background:none;cursor:pointer;font-family:var(--font);transition:all .2s}
+.console-toggle button.active-safe{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.05)}
+.console-toggle button.active-risk{border-color:var(--red);color:var(--red);background:rgba(255,68,68,.05)}
+.console-body{padding:24px;font-size:13px;min-height:300px}
+.console-status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--green);margin-bottom:16px}
+.console-line{display:flex;gap:8px;margin-bottom:6px}
+.console-line .prefix{color:rgba(0,255,136,.4);min-width:70px}
+.console-line .safe{color:var(--green)}
+.console-line .warn{color:var(--amber)}
+.console-line .danger{color:var(--red)}
+.console-line .crit{color:var(--red5);font-weight:700}
+.console-line .muted{color:var(--muted)}
+.console-line .sep{color:var(--border)}
+.console-prompt{margin-top:24px;display:flex;align-items:center;gap:8px}
+.console-prompt .user{color:var(--green)}
+.console-prompt .arrow{color:var(--muted)}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:48px 0}
+footer .inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+footer .copy{font-size:11px;color:var(--muted)}
+footer .links{display:flex;gap:24px;font-size:11px}
+footer .links a{color:var(--muted);transition:color .2s}
+footer .links a:hover{color:var(--green)}
+
+/* Mobile */
+@media(max-width:768px){
+  nav .links{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .ranges{grid-template-columns:repeat(2,1fr)}
+  .sim-result{grid-template-columns:1fr}
+  .sim-input input[type=range]{width:140px}
+  section{padding:64px 0}
+}
+@media(max-width:480px){
+  .ranges{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body class="grid-bg">
+
+<!-- NAV -->
+<nav>
+  <div class="inner">
+    <a href="#" class="logo">EXIT<span>WISE</span></a>
+    <div class="links">
+      <a href="#about">About</a>
+      <a href="#signals">Signals</a>
+      <a href="#scanner">Scanner</a>
+      <a href="#install">Install</a>
+    </div>
+    <button class="btn">LAUNCH APP</button>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>EXITWISE v2.0</span><span class="sep">◇</span>
+    <span>14 SCORING SIGNALS</span><span class="sep">◇</span>
+    <span>RULE-BASED HEURISTICS</span><span class="sep">◇</span>
+    <span>NO ML · NO AI</span><span class="sep">◇</span>
+    <span>DEXSCREENER + BLOCKSCOUT</span><span class="sep">◇</span>
+    <span>PORTFOLIO SCANNER</span><span class="sep">◇</span>
+    <span>HISTORICAL TRACKING</span><span class="sep">◇</span>
+    <span>TELEGRAM BOT</span><span class="sep">◇</span>
+    <span>WEB DASHBOARD</span><span class="sep">◇</span>
+    <span>BACKTESTING ENGINE</span><span class="sep">◇</span>
+    <span>EXITWISE v2.0</span><span class="sep">◇</span>
+    <span>14 SCORING SIGNALS</span><span class="sep">◇</span>
+    <span>RULE-BASED HEURISTICS</span><span class="sep">◇</span>
+    <span>NO ML · NO AI</span><span class="sep">◇</span>
+    <span>DEXSCREENER + BLOCKSCOUT</span><span class="sep">◇</span>
+    <span>PORTFOLIO SCANNER</span><span class="sep">◇</span>
+    <span>HISTORICAL TRACKING</span><span class="sep">◇</span>
+    <span>TELEGRAM BOT</span><span class="sep">◇</span>
+    <span>WEB DASHBOARD</span><span class="sep">◇</span>
+    <span>BACKTESTING ENGINE</span><span class="sep">◇</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="tag fade-in">EXITWISE · V2.0 · HEURISTIC EXIT STRATEGY AGENT</div>
+  <h1 class="fade-in"><span class="green">Check </span><span class="white">Risk Score</span><br><span style="font-size:.45em;color:var(--muted);font-weight:400">before you panic sell.</span></h1>
+  <p class="sub fade-in">ExitWise uses <span style="color:var(--green)">14 rule-based heuristics</span> to score risk from <span class="low">0 (safe)</span> to <span class="high">22 (critical)</span>. Not ML. Not AI. Just math. Analyzes token metrics via DexScreener + Blockscout on-chain data on Base chain.</p>
+  <p class="note fade-in">Higher score = higher risk = consider exiting.</p>
+  <div class="cta fade-in">
+    <a href="#install" class="btn-primary">Install Now →</a>
+    <a href="#scanner" class="btn-secondary">Try Scanner</a>
+  </div>
+  <div class="stats fade-in">
+    <div><div class="val">14</div><div class="lbl">SCORING SIGNALS</div></div>
+    <div><div class="val">0–22</div><div class="lbl">RISK SCORE</div></div>
+    <div><div class="val">0–3</div><div class="lbl">SAFE TO HOLD</div></div>
+    <div><div class="val">13+</div><div class="lbl">EXIT ALL</div></div>
+  </div>
+  <div class="online"><div class="dot"></div>EXITWISE ENGINE ONLINE</div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">ABOUT EXITWISE</div>
+    <h2 class="section-title">Not a chatbot. Not an assistant. A shield.</h2>
+    <p class="section-desc">ExitWise analyzes token metrics and produces a risk score (0–15) to help you decide: hold, take profit, or cut losses. Rule-based heuristics — not vibes.</p>
+    <div class="features">
+      <div class="feature fade-in"><div class="icon">🛡️</div><h3>Risk Score Engine</h3><p>12 rule-based signals produce a 0–15 risk score. Higher = riskier. No ML, no AI — pure heuristics.</p></div>
+      <div class="feature fade-in"><div class="icon">📊</div><h3>Portfolio Scanner</h3><p>Track and scan multiple tokens at once. Add, remove, and batch scan your holdings.</p></div>
+      <div class="feature fade-in"><div class="icon">📈</div><h3>Historical Tracking</h3><p>SQLite-based score history with trend analysis. See how risk changes over time.</p></div>
+      <div class="feature fade-in"><div class="icon">🤖</div><h3>Telegram Bot</h3><p>Scan tokens and get alerts via Telegram. Commands: /scan, /trending, /portfolio.</p></div>
+      <div class="feature fade-in"><div class="icon">🖥️</div><h3>Web Dashboard</h3><p>Flask-based dark-theme UI for scanning and monitoring tokens in real-time.</p></div>
+      <div class="feature fade-in"><div class="icon">🔬</div><h3>Backtesting Engine</h3><p>Validate scoring accuracy against historical data. Prove your edge.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNALS -->
+<section id="signals">
+  <div class="container">
+    <div class="section-label">SCORING SIGNALS</div>
+    <h2 class="section-title">14 signals. One risk score. Zero guesswork.</h2>
+    <p class="signals-intro">Each signal adds points to the risk score. <strong>Higher score = higher risk = consider exiting.</strong> The score ranges from 0 (safe) to 22+ (critical). Points stack — a token can trigger multiple signals at once.</p>
+    <div class="signal-legend">
+      <span style="border-color:var(--red);color:var(--red)">CRITICAL</span>
+      <span style="border-color:var(--amber);color:var(--amber)">HIGH</span>
+      <span style="border-color:var(--cyan);color:var(--cyan)">MEDIUM</span>
+    </div>
+
+    <h3 class="signal-group-title">CORE SIGNALS</h3>
+    <div class="signals-grid">
+      <div class="signal"><div class="top"><span class="id">#01</span><span class="badge critical">CRITICAL</span></div><h4>Liquidity</h4><div class="trigger">&lt; $1,000 → +3 | &lt; $10,000 → +2</div><div class="desc">Low liquidity = easy to rug. Below $1K is max danger zone.</div></div>
+      <div class="signal"><div class="top"><span class="id">#02</span><span class="badge high">HIGH</span></div><h4>ATH Dump</h4><div class="trigger">&gt; 50% from peak → +2 | &gt; 30% → +1</div><div class="desc">How far price has dumped from all-time high. Big dump = holders trapped.</div></div>
+      <div class="signal"><div class="top"><span class="id">#03</span><span class="badge critical">CRITICAL</span></div><h4>Rug Ratio</h4><div class="trigger">&gt; 0.5 → +3 | &gt; 0.1 → +1</div><div class="desc">Ratio of insider sell pressure to buy pressure. High = rug in progress.</div></div>
+      <div class="signal"><div class="top"><span class="id">#04</span><span class="badge high">HIGH</span></div><h4>Contract Renounced</h4><div class="trigger">NOT revoked → +2</div><div class="desc">Is contract ownership renounced? If not, dev can modify and rug.</div></div>
+      <div class="signal"><div class="top"><span class="id">#05</span><span class="badge critical">CRITICAL</span></div><h4>Top 10 Holders</h4><div class="trigger">&gt; 80% supply → +2 | &gt; 60% → +1</div><div class="desc">Concentrated holdings = massive dump risk when they sell.</div></div>
+      <div class="signal"><div class="top"><span class="id">#06</span><span class="badge high">HIGH</span></div><h4>Volume 24h</h4><div class="trigger">&lt; $5,000 → +2 | &lt; $50,000 → +1</div><div class="desc">Dead volume means no exit liquidity. You won't be able to sell.</div></div>
+    </div>
+
+    <h3 class="signal-group-title v2">NEW IN V2</h3>
+    <div class="signals-grid">
+      <div class="signal"><div class="top"><span class="id">#07</span><span class="badge critical">CRITICAL</span></div><h4>Holders</h4><div class="trigger">&lt; 10 → +2 | &lt; 50 → +1</div><div class="desc">Few holders = no community, easy to manipulate price.</div></div>
+      <div class="signal"><div class="top"><span class="id">#08</span><span class="badge critical">CRITICAL</span></div><h4>Bot Rate</h4><div class="trigger">&gt; 60% → +2 | &gt; 40% → +1</div><div class="desc">Percentage of bot wallets. High = artificial volume and fake activity.</div></div>
+      <div class="signal"><div class="top"><span class="id">#09</span><span class="badge medium">MEDIUM</span></div><h4>Smart Money</h4><div class="trigger">0 detected → +1</div><div class="desc">Are experienced wallets in? If none, it's a red flag.</div></div>
+      <div class="signal"><div class="top"><span class="id">#10</span><span class="badge high">HIGH</span></div><h4>Buy/Sell Ratio</h4><div class="trigger">&lt; 0.5x → +1</div><div class="desc">More selling than buying = exit pressure building up.</div></div>
+      <div class="signal"><div class="top"><span class="id">#11</span><span class="badge high">HIGH</span></div><h4>1h Price Change</h4><div class="trigger">&lt; -20% → +2 | &gt; +100% → +1</div><div class="desc">Sharp drops OR extreme pumps both signal abnormal risk.</div></div>
+    </div>
+
+    <h3 class="signal-group-title v2">DYOR-POWERED SIGNALS</h3>
+    <div class="signals-grid">
+      <div class="signal"><div class="top"><span class="id">#12</span><span class="badge high">HIGH</span></div><h4>Contract Safety</h4><div class="trigger">Unverified → +2 | Proxy → +1</div><div class="desc">Is source code verified on-chain? Unverified contracts can hide malicious code.</div></div>
+      <div class="signal"><div class="top"><span class="id">#13</span><span class="badge critical">CRITICAL</span></div><h4>Token Age</h4><div class="trigger">&lt; 1h → +3 | &lt; 24h → +2 | &lt; 7d → +1</div><div class="desc">Brand new tokens are highest risk. Most rugs happen within the first 24 hours.</div></div>
+      <div class="signal"><div class="top"><span class="id">#14</span><span class="badge high">HIGH</span></div><h4>Vol/Liq Health</h4><div class="trigger">&gt; 10x → +2 | &gt; 5x → +1</div><div class="desc">Volume-to-liquidity ratio. Extreme ratios indicate wash trading or manipulation.</div></div>
+    </div>
+
+    <!-- Score Ranges -->
+    <div class="ranges">
+      <div class="range hold"><div class="score">0–3</div><div class="verdict">HOLD</div><div class="action">Safe to hold</div></div>
+      <div class="range partial"><div class="score">4–7</div><div class="verdict">PARTIAL EXIT</div><div class="action">Sell 50%</div></div>
+      <div class="range major"><div class="score">8–12</div><div class="verdict">MAJOR EXIT</div><div class="action">Sell 80%</div></div>
+      <div class="range full"><div class="score">13+</div><div class="verdict">FULL EXIT</div><div class="action">Sell everything</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCANNER -->
+<section id="scanner">
+  <div class="container">
+    <div class="section-label">LIVE SCANNER</div>
+    <h2 class="section-title">Scan any token on Base.</h2>
+    <p class="section-desc">Paste a contract address and get a real risk score instantly. Powered by DexScreener data.</p>
+    <div class="simulator">
+      <div class="sim-header">
+        <h3>Token Scanner</h3>
+        <div style="display:flex;gap:8px;flex:1;max-width:500px">
+          <input type="text" id="scanInput" placeholder="0x... contract address" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+          <button onclick="scanToken()" class="btn-primary" style="white-space:nowrap">SCAN</button>
+          <a href="/investigate" class="btn-primary" style="background:var(--amber);text-decoration:none;white-space:nowrap">DEEP INVESTIGATE</a>
+        </div>
+      </div>
+      <div id="scanLoading" style="display:none;color:var(--muted);text-align:center;padding:24px">
+        <div class="dot" style="display:inline-block;margin-right:8px"></div>Scanning token...
+      </div>
+      <div id="scanError" style="display:none;color:var(--red);padding:12px;border:1px solid var(--red);background:rgba(255,68,68,.05);margin-top:12px"></div>
+      <div id="scanResult" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--muted)">TOKEN</div>
+            <div id="tokenName" style="font-size:18px;font-weight:700;color:#fff"></div>
+            <div id="tokenMeta" style="font-size:11px;color:var(--muted)"></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--muted)">PRICE</div>
+            <div id="tokenPrice" style="font-size:18px;font-weight:700;color:#fff"></div>
+          </div>
+        </div>
+        <div class="sim-bar"><div class="sim-bar-fill" id="scanBar" style="width:0%;background:var(--green)"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+          <div>
+            <div id="scanScore" style="font-size:32px;font-weight:700"></div>
+            <div id="scanVerdict" style="font-size:14px;font-weight:600"></div>
+            <div id="scanAction" style="font-size:12px;color:var(--muted)"></div>
+          </div>
+          <a id="scanDexLink" href="#" target="_blank" class="btn-secondary" style="font-size:11px">View on DexScreener →</a>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">METRICS</div>
+          <div id="scanMetrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">SIGNALS</div>
+          <div id="scanSignals"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="container">
+    <div class="section-label">INSTALL</div>
+    <h2 class="section-title">Get started in 30 seconds.</h2>
+    <p class="section-desc">Core scoring has zero dependencies. Just Python 3.9+ and GMGN CLI.</p>
+    <div class="install-block">
+      <div class="comment"># Clone</div>
+      <div class="cmd">$ git clone https://github.com/exitwise/exitwise-utility.git</div>
+      <div class="cmd">$ cd exitwise-utility</div>
+      <div class="comment" style="margin-top:16px"># Core (no dependencies)</div>
+      <div class="cmd">$ python shieldscore.py --help</div>
+      <div class="comment" style="margin-top:16px"># Optional: web dashboard & telegram bot</div>
+      <div class="cmd">$ pip install -r requirements.txt</div>
+    </div>
+    <div class="quickstart">
+      <h3>Quick Start</h3>
+      <div class="qs-item"><code>$ python shieldscore.py --address &lt;CA&gt; --chain base</code><span>Scan a single token</span></div>
+      <div class="qs-item"><code>$ python shieldscore.py --address &lt;CA&gt; --chain base --holders</code><span>Scan with holder analysis</span></div>
+      <div class="qs-item"><code>$ python shieldscore.py --trending --chain base --limit 10</code><span>Scan trending tokens</span></div>
+      <div class="qs-item"><code>$ python shieldscore.py --portfolio scan</code><span>Scan entire portfolio</span></div>
+      <div class="qs-item"><code>$ python shieldscore.py --history --address &lt;CA&gt; --chain base</code><span>View score trend</span></div>
+    </div>
+    <div class="channels">
+      <div class="channel"><div class="icon">⌨️</div><h3>CLI</h3><p>Run directly from terminal. Zero dependencies for core scoring.</p></div>
+      <div class="channel"><div class="icon">📱</div><h3>Telegram Bot</h3><p>/scan, /trending, /portfolio commands. Get alerts on your phone.</p></div>
+      <div class="channel"><div class="icon">🖥️</div><h3>Web Dashboard</h3><p>Flask dark-theme UI. Visual scanning and monitoring.</p></div>
+      <div class="channel"><div class="icon">🐍</div><h3>Python API</h3><p>Import shieldscore in your own scripts. Full programmatic access.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- RECENT SCANS -->
+<section id="recent">
+  <div class="container">
+    <div class="section-label" style="text-align:center">RECENT SCANS</div>
+    <h2 class="section-title" style="text-align:center">Try these popular Base tokens.</h2>
+    <p class="section-desc" style="text-align:center;margin:0 auto 48px">Click any token to see its risk score instantly.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;max-width:900px;margin:0 auto">
+      <button onclick="quickScan('0x4200000000000000000000000000000000000006')" style="all:unset;cursor:pointer;border:1px solid var(--border);background:var(--card);padding:16px;text-align:left;transition:border-color .2s">
+        <div style="font-weight:700;color:#fff">Wrapped ETH</div>
+        <div style="font-size:11px;color:var(--muted)">WETH · 0x4200...0006</div>
+      </button>
+      <button onclick="quickScan('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')" style="all:unset;cursor:pointer;border:1px solid var(--border);background:var(--card);padding:16px;text-align:left;transition:border-color .2s">
+        <div style="font-weight:700;color:#fff">USD Coin</div>
+        <div style="font-size:11px;color:var(--muted)">USDC · 0x8335...2913</div>
+      </button>
+      <button onclick="quickScan('0x532f27101965dd16442E59d40670FaF5eBB142E4')" style="all:unset;cursor:pointer;border:1px solid var(--border);background:var(--card);padding:16px;text-align:left;transition:border-color .2s">
+        <div style="font-weight:700;color:#fff">Brett</div>
+        <div style="font-size:11px;color:var(--muted)">BRETT · 0x532f...42E4</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container inner">
+    <div class="copy">© 2025 ExitWise · Rule-based heuristics · Not financial advice</div>
+    <div class="links">
+      <a href="#">Twitter</a>
+      <a href="#">Telegram</a>
+      <a href="#">Docs</a>
+      <a href="#">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Token Scanner
+const scanInput = document.getElementById('scanInput');
+const scanLoading = document.getElementById('scanLoading');
+const scanError = document.getElementById('scanError');
+const scanResult = document.getElementById('scanResult');
+
+// Enter key to scan
+scanInput.addEventListener('keydown', e => { if (e.key === 'Enter') scanToken(); });
+
+function quickScan(address) {
+  scanInput.value = address;
+  scanInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  scanToken();
+}
+
+async function scanToken() {
+  const address = scanInput.value.trim();
+  if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    showError('Invalid contract address. Must be a valid 0x... address.');
+    return;
+  }
+
+  // Show loading
+  scanLoading.style.display = 'block';
+  scanError.style.display = 'none';
+  scanResult.style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/scan?address=${address}&chain=base`);
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      showError(data.error || 'Scan failed. Try again.');
+      return;
+    }
+
+    renderResult(data);
+  } catch (err) {
+    showError('Network error. Check your connection and try again.');
+  }
+}
+
+function showError(msg) {
+  scanLoading.style.display = 'none';
+  scanError.textContent = '⚠ ' + msg;
+  scanError.style.display = 'block';
+}
+
+function renderResult(data) {
+  scanLoading.style.display = 'none';
+  scanResult.style.display = 'block';
+
+  const { token, metrics, riskScore, maxScore, verdict, action, signals } = data;
+
+  // Token info
+  document.getElementById('tokenName').textContent = `${token.name} (${token.symbol})`;
+  document.getElementById('tokenMeta').textContent = `${token.chain.toUpperCase()} · ${token.dex} · ${token.address.slice(0, 6)}...${token.address.slice(-4)}`;
+  document.getElementById('tokenPrice').textContent = token.priceUsd < 0.000001 ? '$' + token.priceUsd.toExponential(2) : '$' + token.priceUsd.toLocaleString(undefined, { maximumFractionDigits: 6 });
+
+  // Score bar
+  const max = maxScore || 22;
+  const pct = Math.min(riskScore, max) / max * 100;
+  const color = riskScore <= 3 ? 'var(--green)' : riskScore <= 7 ? 'var(--amber)' : riskScore <= 12 ? 'var(--red)' : 'var(--red5)';
+  document.getElementById('scanBar').style.width = pct + '%';
+  document.getElementById('scanBar').style.background = color;
+
+  // Verdict
+  const scoreEl = document.getElementById('scanScore');
+  scoreEl.textContent = `Risk Score: ${riskScore}/${max}`;
+  scoreEl.style.color = color;
+  document.getElementById('scanVerdict').textContent = verdict;
+  document.getElementById('scanVerdict').style.color = color;
+  document.getElementById('scanAction').textContent = action;
+
+  // DexScreener link
+  document.getElementById('scanDexLink').href = token.pairUrl || '#';
+
+  // Metrics
+  const metricsHtml = [
+    { label: 'Liquidity', value: '$' + metrics.liquidity.toLocaleString() },
+    { label: 'Volume 24h', value: '$' + metrics.volume24h.toLocaleString() },
+    { label: 'Buy/Sell', value: metrics.buySellRatio.toFixed(2) + 'x' },
+    { label: '1h Change', value: (metrics.priceChangeH1 >= 0 ? '+' : '') + metrics.priceChangeH1.toFixed(1) + '%' },
+    { label: '24h Change', value: (metrics.priceChangeH24 >= 0 ? '+' : '') + metrics.priceChangeH24.toFixed(1) + '%' },
+    { label: 'Rug Ratio', value: metrics.rugRatio.toFixed(2) },
+    { label: 'Buys 24h', value: metrics.buys24h.toLocaleString() },
+    { label: 'Sells 24h', value: metrics.sells24h.toLocaleString() },
+    ...(metrics.holderCount !== null && metrics.holderCount !== undefined ? [{ label: 'Holders', value: metrics.holderCount.toLocaleString() }] : []),
+    ...(metrics.topHolderPct !== null && metrics.topHolderPct !== undefined ? [{ label: 'Top 10 %', value: metrics.topHolderPct.toFixed(1) + '%' }] : []),
+    ...(metrics.isVerified !== null && metrics.isVerified !== undefined ? [{ label: 'Verified', value: metrics.isVerified ? '✓ Yes' : '✗ No' }] : []),
+    ...(metrics.tokenType ? [{ label: 'Type', value: metrics.tokenType }] : []),
+  ].map(m => `<div style="padding:8px;border:1px solid var(--border);background:var(--bg)"><div style="font-size:10px;color:var(--muted)">${m.label}</div><div style="font-size:13px;color:#fff">${m.value}</div></div>`).join('');
+  document.getElementById('scanMetrics').innerHTML = metricsHtml;
+
+  // Signals
+  const riskColors = { CRITICAL: 'var(--red5)', HIGH: 'var(--red)', MEDIUM: 'var(--amber)', SAFE: 'var(--green)', UNKNOWN: 'var(--muted)' };
+  const signalsHtml = signals.map(s => {
+    const c = riskColors[s.risk] || 'var(--muted)';
+    const icon = s.risk === 'SAFE' ? '✓' : s.risk === 'UNKNOWN' ? '?' : '⚠';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--muted)">#${s.id} ${s.name}</span>
+      <span style="color:${c}">${icon} ${s.trigger} → +${s.points} ${s.value ? '(' + s.value + ')' : ''}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('scanSignals').innerHTML = signalsHtml;
+}
+</script>
+</body>
+</html>
