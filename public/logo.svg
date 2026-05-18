@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Shield shape -->
+  <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" fill="#111" stroke="#00ff88" stroke-width="2"/>
+  <!-- Exit arrow -->
+  <path d="M24 24h12m0 0l-4-4m4 4l-4 4" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 24v12" stroke="#00ff88" stroke-width="3" stroke-linecap="round"/>
+  <!-- Inner glow -->
+  <path d="M32 8l-20 10v12c0 12 8 23.5 20 27 12-3.5 20-15 20-27V18L32 8z" fill="none" stroke="#00ff88" stroke-width="0.5" opacity="0.3"/>
+</svg>
