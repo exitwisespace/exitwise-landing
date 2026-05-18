@@ -43,10 +43,10 @@ module.exports = async function handler(req, res) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 1024,
+        max_tokens: 512,
         temperature: 0.3,
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(9000),
     });
 
     if (!llmRes.ok) {
