@@ -10,10 +10,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: amondnet/vercel-action@v25
+      - uses: actions/setup-node@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: team_MptFP17yet2NTDPR1qMQz3Jb
-          vercel-project-id: prj_NM7IOVWnWHQjSvGvawER8ptiyf7k
-          vercel-args: '--prod'
-          working-directory: ./
+          node-version: 20
+
+      - run: npm i -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Print URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
