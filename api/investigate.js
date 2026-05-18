@@ -122,11 +122,18 @@ async function fetchDexScreener(address, chain) {
 }
 
 async function fetchSmartContract(address, BASE) {
-  const res = await fetch(`${BASE}/smart-contracts/${address}`, {
+  // Use /addresses/ endpoint — has creator_address_hash and creation_transaction_hash
+  const res = await fetch(`${BASE}/addresses/${address}`, {
     signal: AbortSignal.timeout(10000)
   });
   if (!res.ok) return null;
-  return res.json();
+  const data = await res.json();
+  // Also fetch smart contract details for verified source info
+  const scRes = await fetch(`${BASE}/smart-contracts/${address}`, {
+    signal: AbortSignal.timeout(8000)
+  }).catch(() => null);
+  const sc = scRes && scRes.ok ? await scRes.json() : {};
+  return { ...data, ...sc };
 }
 
 async function fetchAddressInfo(address, BASE) {
