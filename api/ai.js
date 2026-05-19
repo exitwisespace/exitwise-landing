@@ -2,9 +2,9 @@
 // Honey Router: AI-powered investigation analysis
 // Calls /api/investigate, then feeds data to LLM for natural language report
 
-const LLM_API_KEY = process.env.LLM_API_KEY || '';
-const LLM_MODEL = process.env.LLM_MODEL || 'mimo-v2.5-pro';
-const LLM_BASE_URL = process.env.LLM_BASE_URL || 'https://opengateway.gitlawb.com/v1/chat/completions';
+const LLM_API_KEY = process.env.LLM_API_KEY || 'fe_oa_048fa5923c4ad1e131ad03e84c0512516e89f7a3df2efd54';
+const LLM_MODEL = process.env.LLM_MODEL || 'gpt-5.4-mini';
+const LLM_BASE_URL = process.env.LLM_BASE_URL || 'https://vip-sg.freemodel.dev/v1/chat/completions';
 
 module.exports = async function handler(req, res) {
   // CORS
@@ -43,15 +43,15 @@ module.exports = async function handler(req, res) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 512,
+        max_tokens: 400,
         temperature: 0.3,
       }),
-      signal: AbortSignal.timeout(9000),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!llmRes.ok) {
       const llmErr = await llmRes.text().catch(() => 'Unknown LLM error');
-      console.error('OpenRouter error:', llmErr);
+      console.error('LLM fallback:', llmErr);
       // Fallback: return raw data with a templated analysis
       const fallbackAnalysis = generateFallbackAnalysis(investigationData);
       return res.status(200).json({
@@ -73,7 +73,7 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('AI Agent error:', err);
+    console.error('LLM fallback:', err.message);
     // On any error (timeout, API failure, etc), return enhanced fallback analysis
     const fallbackAnalysis = generateFallbackAnalysis(investigationData);
     return res.status(200).json({
@@ -91,26 +91,16 @@ module.exports = async function handler(req, res) {
 // ═══════════════════════════════════════════════════
 
 function buildSystemPrompt() {
-  return `You are ExitWise AI — a professional crypto safety analyst and on-chain investigator.
+  return `You are a paranoid on-chain trench investigator working on Base chain.
+Assume every token is guilty until proven otherwise.
+Find reasons NOT to trust this token.
 
-Your job is to analyze raw investigation data about a cryptocurrency token and produce a clear, actionable safety report for everyday users.
-
-RULES:
-1. Start with a clear verdict line: "🟢 VERDICT: SAFE" / "🟡 VERDICT: CAUTION" / "🔴 VERDICT: DANGEROUS"
-2. Explain WHY in plain English — avoid jargon where possible. If you use technical terms, briefly explain them.
-3. Highlight the 3-5 most important findings, ordered by severity.
-4. If GoPlus audit flags exist (honeypot, mintable, pausable, blacklist, hidden owner, self-destruct), these are CRITICAL — always mention them prominently.
-5. If deployer forensics show previous rug pulls or scam tokens, this is a major red flag.
-6. If holder concentration is extreme (>50% in top 3 wallets), warn about dump risk.
-7. End with a confidence level: HIGH / MEDIUM / LOW based on data completeness.
-8. Use emojis sparingly for readability (🔴🟡🟢⚠️✅❌🔍).
-9. Keep the report under 500 words — be concise and scannable.
-10. This is NOT financial advice. Always remind users to DYOR.
-
-VERDICT THRESHOLDS:
-- SAFE: Risk score ≤ 3/22 AND no GoPlus red flags AND no deployer rug history
-- CAUTION: Risk score 4-12/22 OR minor GoPlus flags OR suspicious holder patterns
-- DANGEROUS: Risk score > 12/22 OR honeypot detected OR deployer has rug history OR OFAC flagged OR multiple critical GoPlus flags`;
+Output format:
+THESIS — verdict blunt 1-2 kalimat
+RED FLAGS — max 5, paling damning duluan
+BULL CASE — kalau ada, kalau tidak tulis: None found
+WORST CASE — kalau ini coordinated exit, apa yang terjadi
+ACTION — AVOID / EXIT NOW / PARTIAL EXIT / WATCHLIST / SAFE TO HOLD + satu kalimat alasan`;
 }
 
 function buildUserPrompt(data) {
@@ -188,7 +178,7 @@ ${(data.deployer.riskFlags || []).length > 0 ? `- Risk flags:\n${data.deployer.r
 - EOA wallets: ${data.holders.eoaHolders}
 - Contract addresses: ${data.holders.contractHolders}
 - Scam-tagged holders: ${data.holders.scamTagged}
-- Concentration: Top 3 = ${data.holders.concentration.top3}, Top 10 = ${data.holders.concentration.top10}
+- Concentration: Top 3 = ${data.holders.concentration?.top3 || 'N/A'}, Top 10 = ${data.holders.concentration?.top10 || 'N/A'}
 - Whale count (>1% supply): ${data.holders.whaleCount || 0}
 ${(data.holders.riskFlags || []).length > 0 ? `- Risk flags:\n${data.holders.riskFlags.map(f => `    - ${f}`).join('\n')}` : ''}`);
   } else {
@@ -222,114 +212,118 @@ function generateFallbackAnalysis(data) {
   const L = [];
   const score = data.scan?.score ?? 0;
   const maxScore = data.scan?.maxScore ?? 22;
-  const scoreRatio = maxScore > 0 ? score / maxScore : 0;
+  const name = data.token?.name || 'Unknown';
+  const symbol = data.token?.symbol || '???';
 
-  // Determine verdict
-  let verdict, emoji;
-  if (score <= 3 && !data.audit?.isHoneypot) {
-    verdict = 'SAFE'; emoji = '🟢';
-  } else if (score > 12 || data.audit?.isHoneypot || data.deployer?.ruggedCount > 0) {
-    verdict = 'DANGEROUS'; emoji = '🔴';
+  // ── THESIS ──────────────────────────────────────────────────────
+  const findings = [];
+  if (data.audit?.isHoneypot) findings.push('HONEYPOT');
+  if (data.audit?.canMint) findings.push('UNLIMITED MINT');
+  if (data.audit?.hiddenOwner) findings.push('HIDDEN OWNER');
+  if (data.deployer?.ruggedCount > 0) findings.push(`${data.deployer.ruggedCount} RUGS IN DEPLOYER HISTORY`);
+  if (data.holders?.concentration?.top3 && parseFloat(data.holders.concentration.top3) > 50) findings.push(`TOP 3 HOLD ${data.holders.concentration.top3}`);
+  if (data.osint?.ofacFlagged) findings.push('OFAC SANCTIONED');
+  if (data.audit?.canPause) findings.push('PAUSABLE');
+  if (data.audit?.canBlacklist) findings.push('BLACKLISTABLE');
+  if (data.audit?.cannotSellAll) findings.push('CANNOT SELL ALL');
+
+  let thesis;
+  if (score <= 3 && findings.length === 0) {
+    thesis = `${name} (${symbol}) scores ${score}/${maxScore}. No major red flags found. Looks clean on surface — but always check who's buying.`;
+  } else if (score <= 7) {
+    thesis = `${name} (${symbol}) scores ${score}/${maxScore}. Some suspicious patterns detected. Not an obvious scam but proceed with caution.`;
+  } else if (score <= 12) {
+    thesis = `${name} (${symbol}) scores ${score}/${maxScore}. Multiple red flags. High probability this ends badly.`;
   } else {
-    verdict = 'CAUTION'; emoji = '🟡';
+    thesis = `${name} (${symbol}) scores ${score}/${maxScore}. Extreme risk. Everything about this token screams exit liquidity trap.`;
   }
 
-  L.push(`${emoji} VERDICT: ${verdict}`);
-  L.push('');
-  L.push(`**${data.token?.name || 'Unknown'}** (${data.token?.symbol || '???'}) on ${data.token?.chain || 'unknown'}`);
-  L.push(`Risk Score: ${score}/${maxScore}`);
+  L.push('**THESIS**');
+  L.push(thesis);
   L.push('');
 
-  // Key findings
-  const findings = [];
+  // ── RED FLAGS ───────────────────────────────────────────────────
+  L.push('**RED FLAGS**');
+  if (findings.length > 0) {
+    findings.slice(0, 5).forEach((f, i) => L.push(`${i + 1}. ${f}`));
+  } else {
+    L.push('None detected from available data.');
+  }
 
+  // Add contextual red flags
+  if (data.deployer?.tokensDeployed > 3 && data.deployer?.ruggedCount === 0) {
+    L.push(`• Deployer launched ${data.deployer.tokensDeployed} tokens — serial deployer pattern`);
+  }
+  if (data.holders?.scamTagged > 0) {
+    L.push(`• ${data.holders.scamTagged} scam-tagged wallets in holder list`);
+  }
+  if (data.holders?.whaleCount > 10) {
+    L.push(`• ${data.holders.whaleCount} whale wallets (>1% supply) — dump coordination risk`);
+  }
+  if (data.audit?.buyTax > 0 || data.audit?.sellTax > 0) {
+    L.push(`• Tax: buy ${data.audit.buyTax}% / sell ${data.audit.sellTax}% — dev skimming trades`);
+  }
+  L.push('');
+
+  // ── BULL CASE ───────────────────────────────────────────────────
+  L.push('**BULL CASE**');
+  if (score > 8 || findings.length > 2) {
+    L.push('None found.');
+  } else {
+    const bulls = [];
+    if (data.audit?.isOpenSource) bulls.push('Contract is open source and verified');
+    if (data.token?.fdv > 1000000) bulls.push(`FDV $${(data.token.fdv / 1000000).toFixed(1)}M — has real market cap`);
+    if (data.holders?.totalHolders > 1000) bulls.push(`${data.holders.totalHolders.toLocaleString()} holders — distributed base`);
+    if (data.deployer?.ruggedCount === 0 && data.deployer?.tokensDeployed <= 1) bulls.push('First-time deployer, no rug history');
+    if (bulls.length === 0) {
+      L.push('None found.');
+    } else {
+      bulls.forEach(b => L.push(`• ${b}`));
+    }
+  }
+  L.push('');
+
+  // ── WORST CASE ──────────────────────────────────────────────────
+  L.push('**WORST CASE**');
+  const worst = [];
   if (data.audit?.isHoneypot) {
-    findings.push('🔴 HONEYPOT DETECTED — This contract may prevent you from selling your tokens.');
+    worst.push('Contract blocks sells. You buy, price pumps on buys only, dev dumps. You hold bags forever.');
   }
   if (data.audit?.canMint) {
-    findings.push('🔴 Contract allows minting new tokens — supply can be inflated at any time.');
-  }
-  if (data.audit?.hiddenOwner) {
-    findings.push('🔴 Hidden owner detected — ownership is obscured.');
+    worst.push('Dev mints infinite supply, dumps on holders. Token goes to zero in minutes.');
   }
   if (data.deployer?.ruggedCount > 0) {
-    findings.push(`🔴 Deployer has ${data.deployer.ruggedCount} scam/rugged tokens in their history.`);
+    worst.push(`Deployer already rugged ${data.deployer.ruggedCount} tokens. Same playbook: pump, LP pull, delete socials.`);
   }
-  if (data.holders?.concentration?.top3) {
-    const top3 = parseFloat(data.holders.concentration.top3);
-    if (top3 > 50) {
-      findings.push(`🟠 Extreme holder concentration: Top 3 wallets own ${data.holders.concentration.top3} of supply.`);
-    }
+  if (data.holders?.concentration?.top3 && parseFloat(data.holders.concentration.top3) > 50) {
+    worst.push(`Top 3 wallets own ${data.holders.concentration.top3} of supply. Coordinated dump = -90% in seconds.`);
   }
-  if (data.osint?.ofacFlagged) {
-    findings.push('🔴 OFAC SANCTIONED address detected.');
+  if (data.audit?.hiddenOwner) {
+    worst.push('Hidden owner can re-activate privileges at any time. Mint, pause, blacklist — all possible.');
   }
-
-  if (findings.length > 0) {
-    L.push('**Key Findings:**');
-    findings.forEach(f => L.push(f));
-  } else {
-    L.push('✅ No critical red flags detected in the available data.');
-  }
-
-  // Contract audit summary
-  if (data.audit) {
-    L.push('');
-    L.push('**Contract Audit:**');
-    L.push(`- Buy tax: ${data.audit.buyTax || 'unknown'} | Sell tax: ${data.audit.sellTax || 'unknown'}`);
-    L.push(`- Open source: ${data.audit.isOpenSource ? 'Yes ✓' : 'No ✗'}`);
-    if (data.audit.canPause) L.push('- ⚠️ Trading can be paused');
-    if (data.audit.canBlacklist) L.push('- ⚠️ Wallets can be blacklisted');
-  }
-
-  // Deployer summary
-  if (data.deployer) {
-    L.push('');
-    L.push('**Deployer:**');
-    L.push(`- Address: ${data.deployer.address || 'N/A'}`);
-    L.push(`- Balance: ${data.deployer.deployerBalance || 'unknown'}`);
-    L.push(`- Contracts deployed: ${data.deployer.tokensDeployed || 0}`);
-    if (data.deployer.ruggedCount > 0) {
-      L.push(`- 🔴 ${data.deployer.ruggedCount} scam/rugged tokens found`);
+  if (worst.length === 0) {
+    if (score <= 3) {
+      worst.push('Standard memecoin dump. Whale sells, cascading stop-losses, -50% in an hour. Nothing unusual.');
     } else {
-      L.push('- ✅ No scam tokens in deployer history');
+      worst.push('Coordinated exit. Dev + insiders dump simultaneously. LP pulled. Socials deleted. -95% in 10 minutes.');
     }
   }
-
-  // Holder summary
-  if (data.holders) {
-    L.push('');
-    L.push('**Holders:**');
-    L.push(`- Total: ${data.holders.totalHolders || 0} (EOA: ${data.holders.eoaHolders || 0}, Contracts: ${data.holders.contractHolders || 0})`);
-    if (data.holders.concentration) {
-      L.push(`- Concentration: Top 3 = ${data.holders.concentration.top3}, Top 10 = ${data.holders.concentration.top10}`);
-    }
-    L.push(`- Whales (>1%): ${data.holders.whaleCount || 0}`);
-  }
-
-  // Social links
-  if (data.socials?.websites?.length || data.socials?.socials?.length) {
-    L.push('');
-    L.push('**Social:**');
-    for (const w of (data.socials.websites || [])) L.push(`- 🌐 ${w.url}`);
-    for (const s of (data.socials.socials || [])) L.push(`- ${s.type}: ${s.url}`);
-  }
-
-  // Final verdict
+  worst.forEach(w => L.push(`• ${w}`));
   L.push('');
+
+  // ── ACTION ──────────────────────────────────────────────────────
+  L.push('**ACTION**');
   if (score <= 3 && findings.length === 0) {
-    L.push('**🟢 VERDICT: SAFE** — Low risk score, no red flags detected.');
-    L.push('Confidence: MEDIUM (automated analysis)');
-  } else if (score <= 7 || findings.length <= 1) {
-    L.push('**🟡 VERDICT: CAUTION** — Some risk signals detected. Do your own research before investing.');
-    L.push('Confidence: MEDIUM (automated analysis)');
+    L.push('SAFE TO HOLD — Clean signals, but set a stop-loss. Trust no one.');
+  } else if (score <= 7) {
+    L.push('WATCHLIST — Not dangerous enough to panic, but don\'t add size. Monitor LP and deployer wallet.');
+  } else if (score <= 12) {
+    L.push('PARTIAL EXIT — Too many red flags. Take out your initial, let house money ride if you must.');
+  } else if (score <= 17) {
+    L.push('EXIT NOW — High probability of coordinated dump. Every minute you hold, you\'re exit liquidity.');
   } else {
-    L.push('**🔴 VERDICT: DANGEROUS** — Multiple risk signals detected. High probability of loss.');
-    L.push('Confidence: HIGH (automated analysis)');
+    L.push('AVOID — This token has every hallmark of a rug. If you\'re in, get out. If you\'re not, stay away.');
   }
-
-  L.push('');
-  L.push('⚠️ *Automated rule-based analysis. Always DYOR. Not financial advice.*');
 
   return L.join('\n');
 }
