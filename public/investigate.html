@@ -227,7 +227,11 @@ async function investigate() {
   }
 
   try {
-    const res = await fetch(`/api/investigate?address=${address}&chain=base`);
+    const res = await fetch('/api/investigate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, chain: 'base' }),
+    });
     const data = await res.json();
 
     if (!res.ok || data.error) {
