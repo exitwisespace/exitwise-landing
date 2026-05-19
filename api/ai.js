@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
         max_tokens: 400,
         temperature: 0.3,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!llmRes.ok) {
