@@ -86,8 +86,21 @@ module.exports = async function handler(req, res) {
     // Holder clustering
     const holders = rawHolders ? analyzeHolderCluster(rawHolders, dex) : null;
 
+    // Jeeter analysis — analyze top 10 EOA holder behavior
+    let jeeterData = null;
+    if (holders && holders.whales && holders.whales.length > 0) {
+      const eoaAddresses = holders.whales
+        .filter(w => !w.isContract)
+        .slice(0, 10)
+        .map(w => w.address);
+      
+      if (eoaAddresses.length > 0) {
+        jeeterData = await analyzeJeeterBehavior(eoaAddresses, BLOCKSCOUT);
+      }
+    }
+
     // Generate report
-    const report = generateReport(token, scan, socials, deployer, audit, osint, holders);
+    const report = generateReport(token, scan, socials, deployer, audit, osint, holders, jeeterData);
 
     return res.status(200).json({
       success: true,
@@ -98,6 +111,7 @@ module.exports = async function handler(req, res) {
       audit,
       osint,
       holders,
+      jeeter: jeeterData,
       report,
       investigatedAt: new Date().toISOString(),
     });
@@ -443,10 +457,127 @@ function computeRiskScore(dex, addrInfo) {
 }
 
 // ═══════════════════════════════════════════════════
+// JEETER BEHAVIOR ANALYSIS
+// ═══════════════════════════════════════════════════
+
+async function analyzeJeeterBehavior(addresses, BASE) {
+  const MAX_WALLETS = 10;
+  const REQ_TIMEOUT = 12000;
+  const wallets = addresses.slice(0, MAX_WALLETS);
+
+  const results = await Promise.allSettled(
+    wallets.map(addr => analyzeSingleWallet(addr, BASE, REQ_TIMEOUT))
+  );
+
+  const walletResults = [];
+  let jeeterCount = 0;
+  let neutralCount = 0;
+  let believerCount = 0;
+  let newWalletCount = 0;
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value) {
+      const w = r.value;
+      walletResults.push(w);
+      if (w.label === 'JEETER') jeeterCount++;
+      else if (w.label === 'NEUTRAL') neutralCount++;
+      else if (w.label === 'BELIEVER') believerCount++;
+      else if (w.label === 'NEW WALLET') newWalletCount++;
+    }
+  }
+
+  const analyzed = walletResults.length;
+  const jeeterPct = analyzed > 0 ? (jeeterCount / analyzed) * 100 : 0;
+
+  let jeeterRisk;
+  if (jeeterPct >= 60) jeeterRisk = 'HIGH';
+  else if (jeeterPct >= 30) jeeterRisk = 'MEDIUM';
+  else jeeterRisk = 'LOW';
+
+  const summary = analyzed > 0
+    ? `${jeeterCount} of ${analyzed} top wallets are jeeters (${jeeterPct.toFixed(0)}%)`
+    : 'No wallet data available';
+
+  return {
+    jeeterRisk,
+    jeeterPct: jeeterPct.toFixed(1),
+    jeeterCount,
+    neutralCount,
+    believerCount,
+    newWalletCount,
+    analyzed,
+    wallets: walletResults,
+    summary,
+  };
+}
+
+async function analyzeSingleWallet(address, BASE, timeout) {
+  try {
+    const res = await fetch(`${BASE}/addresses/${address}/tokens`, {
+      signal: AbortSignal.timeout(timeout),
+    });
+
+    if (!res.ok) {
+      return { address, label: 'UNKNOWN', error: `HTTP ${res.status}`, tokensHeld: 0 };
+    }
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    // Filter to ERC-20 only
+    const erc20Tokens = items.filter(item => item.token && item.token.type === 'ERC-20');
+    const totalTokens = erc20Tokens.length;
+
+    // NEW WALLET: too little data
+    if (totalTokens < 3) {
+      return { address, label: 'NEW WALLET', tokensHeld: totalTokens, scamTokens: 0, lowHolderTokens: 0, score: null };
+    }
+
+    let scamTokens = 0;
+    let lowHolderTokens = 0;
+    let highHolderTokens = 0;
+
+    for (const item of erc20Tokens) {
+      const t = item.token;
+      if (t.reputation === 'scam' || t.reputation === 'spam') scamTokens++;
+      const holders = parseInt(t.holders_count || '0');
+      if (holders < 100) lowHolderTokens++;
+      if (holders > 1000) highHolderTokens++;
+    }
+
+    const scamRate = totalTokens > 0 ? scamTokens / totalTokens : 0;
+    const lowHolderRate = totalTokens > 0 ? lowHolderTokens / totalTokens : 0;
+
+    let label, score;
+    if (scamRate > 0.3 || (lowHolderRate > 0.6 && totalTokens > 10)) {
+      label = 'JEETER'; score = 1;
+    } else if (scamRate > 0.1 || lowHolderRate > 0.4) {
+      label = 'NEUTRAL'; score = 2;
+    } else {
+      label = 'BELIEVER'; score = 3;
+    }
+
+    return {
+      address,
+      label,
+      score,
+      tokensHeld: totalTokens,
+      scamTokens,
+      lowHolderTokens,
+      highHolderTokens,
+      scamRate: (scamRate * 100).toFixed(0) + '%',
+      lowHolderRate: (lowHolderRate * 100).toFixed(0) + '%',
+    };
+  } catch (err) {
+    return { address, label: 'UNKNOWN', error: err.message, tokensHeld: 0 };
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // REPORT GENERATOR
 // ═══════════════════════════════════════════════════
 
-function generateReport(token, scan, socials, deployer, audit, osint, holders) {
+function generateReport(token, scan, socials, deployer, audit, osint, holders, jeeterData) {
   const L = [];
   const sep = '─'.repeat(40);
 
@@ -582,6 +713,21 @@ function generateReport(token, scan, socials, deployer, audit, osint, holders) {
       for (const [name, url] of Object.entries(osint.lookupUrls)) {
         if (url) L.push(`- [${name}](${url})`);
       }
+    }
+  }
+
+  // Jeeter Analysis
+  if (jeeterData && jeeterData.analyzed > 0) {
+    const riskIcon = jeeterData.jeeterRisk === 'HIGH' ? '🔴' : jeeterData.jeeterRisk === 'MEDIUM' ? '🟡' : '🟢';
+    L.push(`\n## 🎯 Holder Behavior (Jeeter Analysis)`);
+    L.push(`${riskIcon} **Jeeter Risk: ${jeeterData.jeeterRisk}** — ${jeeterData.summary}`);
+    L.push(`\nTop Wallets:`);
+    for (const w of jeeterData.wallets) {
+      const icon = w.label === 'JEETER' ? '🔴' : w.label === 'NEUTRAL' ? '🟡' : w.label === 'BELIEVER' ? '🟢' : '⚪';
+      const shortAddr = w.address ? `${w.address.slice(0, 6)}...${w.address.slice(-4)}` : '???';
+      const detail = w.label === 'NEW WALLET' ? 'insufficient data' : 
+                     w.tokensHeld ? `${w.tokensHeld} tokens, ${w.scamTokens} scam` : '';
+      L.push(`${icon} \`${shortAddr}\` — **${w.label}** (${detail})`);
     }
   }
 

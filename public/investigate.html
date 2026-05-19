@@ -491,6 +491,31 @@ function renderReport(data) {
     html += `</div></div>`;
   }
 
+  // Jeeter Analysis (Holder Behavior)
+  if (data.jeeter && data.jeeter.analyzed > 0) {
+    const j = data.jeeter;
+    const riskIcon = j.jeeterRisk === 'HIGH' ? '🔴' : j.jeeterRisk === 'MEDIUM' ? '🟡' : '🟢';
+    const riskColor = j.jeeterRisk === 'HIGH' ? '#ff4444' : j.jeeterRisk === 'MEDIUM' ? '#ffaa00' : '#44ff44';
+    html += `<div class="section">
+      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🎯</span><h3>Holder Behavior</h3></div>
+      <div class="section-body">
+        <div style="margin-bottom:12px">
+          <span style="color:${riskColor};font-weight:bold;font-size:14px">${riskIcon} Jeeter Risk: ${j.jeeterRisk}</span>
+          <span style="color:var(--muted);margin-left:8px">${j.summary}</span>
+        </div>
+        <ul>`;
+    for (const w of j.wallets) {
+      const icon = w.label === 'JEETER' ? '🔴' : w.label === 'NEUTRAL' ? '🟡' : w.label === 'BELIEVER' ? '🟢' : '⚪';
+      const shortAddr = w.address ? w.address.slice(0, 6) + '...' + w.address.slice(-4) : '???';
+      const detail = w.label === 'NEW WALLET' ? 'insufficient data' :
+                     w.tokensHeld ? w.tokensHeld + ' tokens, ' + w.scamTokens + ' scam' : '';
+      html += `<li>${icon} <code>${shortAddr}</code> — <strong>${w.label}</strong> <span style="color:var(--muted)">(${detail})</span></li>`;
+    }
+    html += `</ul>
+      </div>
+    </div>`;
+  }
+
   // AI Analysis button
   html += `<div class="section" id="aiSection">
     <div class="section-header" style="cursor:pointer;background:rgba(0,212,255,.05)" onclick="runAIAnalysis()">

@@ -188,6 +188,16 @@ ${data.osint.riskFlags?.length > 0 ? `- Flags: ${data.osint.riskFlags.join(', ')
     parts.push(`## OSINT Intelligence\n- Data unavailable`);
   }
 
+  // Jeeter Analysis
+  if (data.jeeter && data.jeeter.analyzed > 0) {
+    const j = data.jeeter;
+    parts.push(`## Holder Behavior (Jeeter Analysis)
+- Jeeter Risk: ${j.jeeterRisk} (${j.jeeterPct}% jeeters)
+- Summary: ${j.summary}
+- Breakdown: ${j.jeeterCount} jeeters, ${j.neutralCount} neutral, ${j.believerCount} believers, ${j.newWalletCount} new wallets
+${j.wallets.map(w => `  - ${w.address?.slice(0,10)}... → ${w.label} (${w.tokensHeld} tokens, ${w.scamTokens} scam)`).join('\n')}`);
+  }
+
   parts.push(`\n---\nBased on all the above data, provide your safety analysis. Start with the verdict, explain your reasoning, highlight the most critical findings, and end with a confidence level.`);
 
   return parts.join('\n\n');
