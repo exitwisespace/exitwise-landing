@@ -491,31 +491,6 @@ function renderReport(data) {
     html += `</div></div>`;
   }
 
-  // Jeeter Analysis (Holder Behavior)
-  if (data.jeeter && data.jeeter.analyzed > 0) {
-    const j = data.jeeter;
-    const riskIcon = j.jeeterRisk === 'HIGH' ? '🔴' : j.jeeterRisk === 'MEDIUM' ? '🟡' : '🟢';
-    const riskColor = j.jeeterRisk === 'HIGH' ? '#ff4444' : j.jeeterRisk === 'MEDIUM' ? '#ffaa00' : '#44ff44';
-    html += `<div class="section">
-      <div class="section-header" onclick="toggleSection(this)"><span class="icon">🎯</span><h3>Holder Behavior</h3></div>
-      <div class="section-body">
-        <div style="margin-bottom:12px">
-          <span style="color:${riskColor};font-weight:bold;font-size:14px">${riskIcon} Jeeter Risk: ${j.jeeterRisk}</span>
-          <span style="color:var(--muted);margin-left:8px">${j.summary}</span>
-        </div>
-        <ul>`;
-    for (const w of j.wallets) {
-      const icon = w.label === 'JEETER' ? '🔴' : w.label === 'NEUTRAL' ? '🟡' : w.label === 'BELIEVER' ? '🟢' : '⚪';
-      const shortAddr = w.address ? w.address.slice(0, 6) + '...' + w.address.slice(-4) : '???';
-      const detail = w.label === 'NEW WALLET' ? 'insufficient data' :
-                     w.tokensHeld ? w.tokensHeld + ' tokens, ' + w.scamTokens + ' scam' : '';
-      html += `<li>${icon} <code>${shortAddr}</code> — <strong>${w.label}</strong> <span style="color:var(--muted)">(${detail})</span></li>`;
-    }
-    html += `</ul>
-      </div>
-    </div>`;
-  }
-
   // AI Analysis button
   html += `<div class="section" id="aiSection">
     <div class="section-header" style="cursor:pointer;background:rgba(0,212,255,.05)" onclick="runAIAnalysis()">
@@ -731,7 +706,62 @@ function renderReport(data) {
   bar.classList.add('visible');
   
   // Store data for AI call
-  window.__investigationData = { token, scan, socials, deployer, audit, osint, holders, jeeter };
+  window.__investigationData = { token, scan, socials, deployer, audit, osint, holders };
+
+  // Async: load jeeter analysis (doesn't block main report)
+  if (holders?.whales?.length) {
+    loadJeeterAnalysis(holders.whales);
+  }
+}
+
+async function loadJeeterAnalysis(whales) {
+  try {
+    const eoaAddresses = whales.filter(w => !w.isContract).slice(0, 5).map(w => w.address);
+    if (eoaAddresses.length === 0) return;
+
+    const res = await fetch('/api/jeeter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addresses: eoaAddresses }),
+    });
+    const jeeterData = await res.json();
+
+    if (jeeterData.success && jeeterData.analyzed > 0) {
+      // Update stored data
+      window.__investigationData.jeeter = jeeterData;
+      // Render the jeeter section
+      renderJeeterSection(jeeterData);
+    }
+  } catch (e) {
+    console.log('Jeeter analysis failed:', e.message);
+  }
+}
+
+function renderJeeterSection(j) {
+  const riskIcon = j.jeeterRisk === 'HIGH' ? '🔴' : j.jeeterRisk === 'MEDIUM' ? '🟡' : '🟢';
+  const riskColor = j.jeeterRisk === 'HIGH' ? '#ff4444' : j.jeeterRisk === 'MEDIUM' ? '#ffaa00' : '#44ff44';
+  let html = `<div class="section">
+    <div class="section-header" onclick="toggleSection(this)"><span class="icon">🎯</span><h3>Holder Behavior</h3></div>
+    <div class="section-body">
+      <div style="margin-bottom:12px">
+        <span style="color:${riskColor};font-weight:bold;font-size:14px">${riskIcon} Jeeter Risk: ${j.jeeterRisk}</span>
+        <span style="color:var(--muted);margin-left:8px">${j.summary}</span>
+      </div>
+      <ul>`;
+  for (const w of j.wallets) {
+    const icon = w.label === 'JEETER' ? '🔴' : w.label === 'NEUTRAL' ? '🟡' : w.label === 'BELIEVER' ? '🟢' : '⚪';
+    const shortAddr = w.address ? w.address.slice(0, 6) + '...' + w.address.slice(-4) : '???';
+    const detail = w.label === 'NEW WALLET' ? 'insufficient data' :
+                   w.tokensHeld ? w.tokensHeld + ' tokens, ' + w.scamTokens + ' scam' : '';
+    html += `<li>${icon} <code>${shortAddr}</code> — <strong>${w.label}</strong> <span style="color:var(--muted)">(${detail})</span></li>`;
+  }
+  html += `</ul></div></div>`;
+
+  // Insert before AI Analysis section
+  const aiSection = document.getElementById('aiSection');
+  if (aiSection) {
+    aiSection.insertAdjacentHTML('beforebegin', html);
+  }
 }
 
 function renderMarkdown(md) {

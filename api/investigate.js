@@ -86,30 +86,8 @@ module.exports = async function handler(req, res) {
     // Holder clustering
     const holders = rawHolders ? analyzeHolderCluster(rawHolders, dex) : null;
 
-    // Jeeter analysis — analyze top 10 EOA holder behavior (with timeout)
-    let jeeterData = null;
-    if (holders && holders.whales && holders.whales.length > 0) {
-      const eoaAddresses = holders.whales
-        .filter(w => !w.isContract)
-        .slice(0, 10)
-        .map(w => w.address);
-      
-      if (eoaAddresses.length > 0) {
-        try {
-          // Race: jeeter analysis vs 15s timeout (don't block the whole investigation)
-          jeeterData = await Promise.race([
-            analyzeJeeterBehavior(eoaAddresses, BLOCKSCOUT),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Jeeter timeout')), 15000)),
-          ]);
-        } catch (e) {
-          console.log('Jeeter analysis skipped:', e.message);
-          jeeterData = null;
-        }
-      }
-    }
-
     // Generate report
-    const report = generateReport(token, scan, socials, deployer, audit, osint, holders, jeeterData);
+    const report = generateReport(token, scan, socials, deployer, audit, osint, holders);
 
     return res.status(200).json({
       success: true,
@@ -120,7 +98,6 @@ module.exports = async function handler(req, res) {
       audit,
       osint,
       holders,
-      jeeter: jeeterData,
       report,
       investigatedAt: new Date().toISOString(),
     });
