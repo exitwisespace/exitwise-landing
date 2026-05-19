@@ -86,7 +86,7 @@ module.exports = async function handler(req, res) {
     // Holder clustering
     const holders = rawHolders ? analyzeHolderCluster(rawHolders, dex) : null;
 
-    // Jeeter analysis — analyze top 10 EOA holder behavior
+    // Jeeter analysis — analyze top 10 EOA holder behavior (with timeout)
     let jeeterData = null;
     if (holders && holders.whales && holders.whales.length > 0) {
       const eoaAddresses = holders.whales
@@ -95,7 +95,16 @@ module.exports = async function handler(req, res) {
         .map(w => w.address);
       
       if (eoaAddresses.length > 0) {
-        jeeterData = await analyzeJeeterBehavior(eoaAddresses, BLOCKSCOUT);
+        try {
+          // Race: jeeter analysis vs 15s timeout (don't block the whole investigation)
+          jeeterData = await Promise.race([
+            analyzeJeeterBehavior(eoaAddresses, BLOCKSCOUT),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Jeeter timeout')), 15000)),
+          ]);
+        } catch (e) {
+          console.log('Jeeter analysis skipped:', e.message);
+          jeeterData = null;
+        }
       }
     }
 
@@ -461,8 +470,8 @@ function computeRiskScore(dex, addrInfo) {
 // ═══════════════════════════════════════════════════
 
 async function analyzeJeeterBehavior(addresses, BASE) {
-  const MAX_WALLETS = 10;
-  const REQ_TIMEOUT = 12000;
+  const MAX_WALLETS = 5;
+  const REQ_TIMEOUT = 8000;
   const wallets = addresses.slice(0, MAX_WALLETS);
 
   const results = await Promise.allSettled(
