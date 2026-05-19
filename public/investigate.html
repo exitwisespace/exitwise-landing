@@ -266,7 +266,7 @@ function showError(msg) {
 
 function renderReport(data) {
   reportEl.style.display = 'block';
-  const { token, scan, socials, deployer, audit, osint, holders, report } = data;
+  const { token, scan, socials, deployer, audit, osint, holders, jeeter, report } = data;
 
   const scoreClass = scan.score <= 3 ? 'safe' : scan.score <= 7 ? 'partial' : scan.score <= 12 ? 'major' : 'full';
 
@@ -731,7 +731,7 @@ function renderReport(data) {
   bar.classList.add('visible');
   
   // Store data for AI call
-  window.__investigationData = { token, scan, socials, deployer, audit, osint, holders };
+  window.__investigationData = { token, scan, socials, deployer, audit, osint, holders, jeeter };
 }
 
 function renderMarkdown(md) {
