@@ -227,7 +227,7 @@ async function investigate() {
   }
 
   try {
-    const res = await fetch('/api/investigate', {
+    const res = await fetch('https://exitwise-api.exitwise-api.workers.dev/api/investigate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address, chain: 'base' }),
@@ -540,7 +540,7 @@ function renderReport(data) {
   // ── Event Timeline (async load) ──────────────────────────────────
   (async function loadTimeline() {
     try {
-      const tRes = await fetch(`/api/timeline?address=${token.address}`);
+      const tRes = await fetch(`https://exitwise-api.exitwise-api.workers.dev/api/timeline?address=${token.address}`);
       const tData = await tRes.json();
       if (!tRes.ok || !tData.success || !tData.events?.length) return;
 
@@ -597,7 +597,7 @@ function renderReport(data) {
   // ── Wallet Genealogy (async load) ────────────────────────────────
   (async function loadGenealogy() {
     try {
-      const gRes = await fetch(`/api/genealogy?address=${token.address}&chain=${token.chain || 'base'}`);
+      const gRes = await fetch(`https://exitwise-api.exitwise-api.workers.dev/api/genealogy?address=${token.address}&chain=${token.chain || 'base'}`);
       const gData = await gRes.json();
       if (!gRes.ok || !gData.success) return;
 
@@ -723,7 +723,7 @@ async function loadJeeterAnalysis(whales) {
     const eoaAddresses = whales.filter(w => !w.isContract).slice(0, 5).map(w => w.address);
     if (eoaAddresses.length === 0) return;
 
-    const res = await fetch('/api/jeeter', {
+    const res = await fetch('https://exitwise-api.exitwise-api.workers.dev/api/jeeter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ addresses: eoaAddresses }),
@@ -835,7 +835,7 @@ async function runAIAnalysis() {
   body.innerHTML = '<p style="color:var(--amber)">🤖 Analyzing with AI...</p>';
   
   try {
-    const res = await fetch('/api/ai', {
+    const res = await fetch('https://exitwise-api.exitwise-api.workers.dev/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: window.__investigationData }),

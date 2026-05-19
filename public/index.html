@@ -508,7 +508,7 @@ async function scanToken() {
   scanResult.style.display = 'none';
 
   try {
-    const res = await fetch(`/api/scan?address=${address}&chain=base`);
+    const res = await fetch(`https://exitwise-api.exitwise-api.workers.dev/api/scan?address=${address}&chain=base`);
     const data = await res.json();
 
     if (!res.ok || data.error) {
